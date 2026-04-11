@@ -1,0 +1,80 @@
+#!/usr/bin/env node
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve, join } from 'node:path';
+import { existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { homedir } from 'node:os';
+import { loadConfig } from '../src/lib/config.js';
+import { runUpdate } from '../src/update.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const REPO_DIR = resolve(dirname(__filename), '..');
+
+function defaultConfigPath() {
+  return join(homedir(), '.config/panorama/config.yaml');
+}
+
+function parseArgs(argv) {
+  const [subcommand, ...rest] = argv;
+  const opts = {};
+  for (let i = 0; i < rest.length; i++) {
+    if (rest[i] === '--config') {
+      opts.config = rest[++i];
+    }
+  }
+  return { subcommand, opts };
+}
+
+function cmdUpdate(opts) {
+  const cfgPath = opts.config || defaultConfigPath();
+  if (!existsSync(cfgPath)) {
+    console.error(`panorama: config not found at ${cfgPath}`);
+    process.exit(1);
+  }
+  const cfg = loadConfig(cfgPath);
+  runUpdate(cfg);
+}
+
+function checkBin(name) {
+  try {
+    execFileSync(name, ['--version'], { stdio: 'pipe' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function cmdDoctor() {
+  const checks = [
+    ['node', checkBin('node')],
+    ['git', checkBin('git')],
+    ['tmux', checkBin('tmux')],
+  ];
+  let allOk = true;
+  for (const [name, ok] of checks) {
+    console.log(`${name}:  ${ok ? 'OK' : 'MISSING'}`);
+    if (!ok && name !== 'tmux') allOk = false;
+  }
+  const cfgPath = defaultConfigPath();
+  console.log(`config: ${existsSync(cfgPath) ? 'OK' : 'MISSING'} (${cfgPath})`);
+  const launchdPlist = join(homedir(), 'Library/LaunchAgents/com.user.panorama.plist');
+  console.log(`launchd: ${existsSync(launchdPlist) ? 'OK' : 'MISSING'} (${launchdPlist})`);
+  process.exit(allOk ? 0 : 1);
+}
+
+function usage() {
+  console.error('Usage: panorama <update|doctor> [--config PATH]');
+  process.exit(2);
+}
+
+const { subcommand, opts } = parseArgs(process.argv.slice(2));
+switch (subcommand) {
+  case 'update':
+    cmdUpdate(opts);
+    break;
+  case 'doctor':
+    cmdDoctor();
+    break;
+  default:
+    usage();
+}
