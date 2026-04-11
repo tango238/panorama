@@ -1,0 +1,11 @@
+# panorama config
+vault_path: ~/Documents/Obsidian/work-dashboard
+dashboard_file: Dashboard.md
+update_interval_seconds: 180
+
+# 列定義（現時点では表示専用、Dashboard.md に合わせる）
+columns:
+  - active
+  - waiting
+  - blocked
+  - done
