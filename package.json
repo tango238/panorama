@@ -1,0 +1,20 @@
+{
+  "name": "panorama",
+  "version": "0.1.0",
+  "description": "Obsidian Kanban dashboard for parallel tmux/ghostty panes",
+  "type": "module",
+  "bin": {
+    "panorama": "./bin/panorama"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tango238/panorama.git"
+  }
+}
