@@ -43,25 +43,21 @@ fi
 
 3. ユーザにタスク名を聞く（直近の会話文脈があればそれを提案して確認）。例: "project-a / feat login"
 
-4. `$VAULT/Dashboard.md` を読み、`## 🟢 対応中` の直下に次のカードを挿入する:
+4. `$VAULT/Dashboard.md` を読み、`## 🟢 対応中` の直下に次のカードを挿入する（タブでインデント）:
 
 ```markdown
-### {project} / {task}
-
-- **tmux:** {tmux-field-or-(tmux外)}
-- **path:** {absolute-path}
-- **alive:** (tmux外) <!-- auto -->
-- **branch:** (n/a) <!-- auto -->
-- **last-commit:** (n/a) <!-- auto -->
-- **last-activity:** (n/a) <!-- auto -->
-
-### 次にやること
-- [ ] 
-
-### メモ
-- 
-
-→ [[projects/{project}]]
+- **{project} / {task}**
+	- **tmux:** {tmux-field-or-(tmux外)}
+	- **path:** {absolute-path}
+	- **alive:** (n/a) <!-- auto -->
+	- **branch:** (n/a) <!-- auto -->
+	- **last-commit:** (n/a) <!-- auto -->
+	- **last-activity:** (n/a) <!-- auto -->
+	- **次にやること:**
+		- [ ] 
+	- **メモ:**
+		- 
+	- → [[projects/{project}]]
 ```
 
 5. ファイルを保存。次回 updater 実行（最大 180 秒）で auto フィールドが埋まる旨をユーザに伝える。
@@ -74,7 +70,7 @@ fi
 
 1. `pwd` を取得
 2. Dashboard.md を読み、各カードの `path:` フィールドを突合してカレントパスに一致するカードを特定
-3. 該当カードの `### 次にやること` セクションに `- [ ] {user-supplied-or-inferred-text}` を追記
+3. 該当カードの `**次にやること:**` セクションに `- [ ] {user-supplied-or-inferred-text}` を追記（タブ2つでインデント）
 4. 該当カードが見つからなければ、ユーザにそう伝える（勝手に新規作成しない）
 
 ## 操作 D: 完了アーカイブ
@@ -85,7 +81,7 @@ fi
 
 1. 対象カードを特定（`pwd` で突合。見つからなければユーザに確認）
 2. カード全体のテキストを `$VAULT/projects/{project}.md` の `## 履歴` セクションに、見出し `### YYYY-MM-DD {task}` を添えて追記（projects ノートが存在しない場合は先に操作 E を実行）
-3. Dashboard.md から該当カード（`###` 見出しから次の `##`/`###` の手前まで）を削除
+3. Dashboard.md から該当カード（`- **title**` から次の `- **` または `##` の手前まで）を削除
 4. 変更内容をユーザに要約
 
 ## 操作 E: projects/ ノート作成

@@ -1,4 +1,4 @@
-const CARD_HEADING = /^### (?!次にやること|メモ)(.+)$/;
+const CARD_ITEM = /^- \*\*.+\*\*\s*$/;
 const COLUMN_HEADING = /^## /;
 
 export function splitCards(text) {
@@ -8,7 +8,7 @@ export function splitCards(text) {
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    if (CARD_HEADING.test(line)) {
+    if (CARD_ITEM.test(line)) {
       if (currentStart !== -1) {
         cards.push({
           startLine: currentStart,
@@ -36,7 +36,7 @@ export function splitCards(text) {
   return cards;
 }
 
-const FIELD_LINE = /^-\s+\*\*([a-z-]+):\*\*\s+(.*?)(\s+<!--\s*auto\s*-->)?\s*$/;
+const FIELD_LINE = /^\s*-\s+\*\*([a-z-]+):\*\*\s+(.*?)(\s+<!--\s*auto\s*-->)?\s*$/;
 
 export function extractCardFields(body) {
   const result = {};
