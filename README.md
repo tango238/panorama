@@ -1,58 +1,162 @@
 # panorama
 
-tmux / ghostty で 8 pane 並列作業をしていると、「どれが何の作業中か」「どこまで進んだか」「入力待ちか実行中か」「次に戻ってきたとき何をやる予定だったか」を見失いがちになる。
+tmux / ghostty で複数の pane を開いて並列作業していると、こんなことありませんか?
 
-panorama は、これら 4 つの情報を **Obsidian Kanban ボード** に集約し、`git` / `tmux` の状態を定期的に自動で反映する macOS 向けの小さな道具です。
+- 「この pane、何の作業してたっけ?」
+- 「どこまで進んだんだっけ?」
+- 「あっちの pane、入力待ちだったかも...」
+- 「次にやろうとしてたこと、忘れた!」
 
-- **Node.js updater** が 180 秒ごとに `branch` / `last-commit` / `last-activity` / `alive` を書き換える
-- **Claude Code スキル** が「ダッシュボードに追加」「次にやること書き残して」「この作業完了」の 1 会話でカード操作を行う
-- **launchd** が updater を定期実行する
+**panorama** は、これらの情報を [Obsidian](https://obsidian.md/) の Kanban ボードにまとめて見える化する macOS 向けの小さなツールです。git や tmux の状態を自動で拾ってきて、ダッシュボードを勝手に更新してくれます。
 
-要件: macOS、Node.js 18 以上、`git`、`tmux`、Obsidian（Kanban プラグイン有効）。
+### しくみ
+
+panorama は 3 つのパーツで動いています。
+
+| パーツ | 役割 |
+|---|---|
+| **Node.js updater** | 180 秒ごとに `branch` / `last-commit` / `last-activity` / `alive` を自動更新 |
+| **Claude Code スキル** | 「ダッシュボードに追加して」のように話しかけるだけでカード操作 |
+| **launchd** | updater をバックグラウンドで定期実行 |
+
+---
 
 ## インストール
 
+### 必要なもの
+
+以下のツールを事前にインストールしてください。
+
+| ツール | 用途 | インストール |
+|---|---|---|
+| [Node.js](https://nodejs.org/) (v18 以上) | updater の実行 | [ダウンロード](https://nodejs.org/en/download) |
+| [Git](https://git-scm.com/) | ブランチ・コミット情報の取得 | [ダウンロード](https://git-scm.com/downloads) |
+| [tmux](https://github.com/tmux/tmux) | pane の状態取得 | `brew install tmux` |
+| [Obsidian](https://obsidian.md/) | Kanban ダッシュボードの表示 | [ダウンロード](https://obsidian.md/download) |
+
+Obsidian には [Kanban プラグイン](https://github.com/mgmeyers/obsidian-kanban) を入れて有効にしておいてください。
+
+### セットアップ (3 ステップ)
+
 ```bash
+# 1. リポジトリをクローン
 git clone https://github.com/tango238/panorama.git ~/.local/share/panorama
+
+# 2. インストーラを実行
 ~/.local/share/panorama/install.sh
+
+# 3. 正しくインストールできたか確認
 panorama doctor
 ```
 
-インストーラは以下を行います:
+これだけで完了です! インストーラが以下をすべて自動でやってくれます。
 
-1. `node` / `git` / `tmux` / `launchctl` の存在確認
-2. `~/.config/panorama/config.yaml` を初期化（無ければ `config.example.yaml` からコピー）
-3. Vault (`~/Documents/Obsidian/work-dashboard` デフォルト) を初期化し `Dashboard.md` を配置
-4. `~/.claude/skills/panorama` → リポジトリの `skill/` へ symlink
-5. `~/.local/bin/panorama` → `bin/panorama` へ symlink
-6. `~/Library/LaunchAgents/com.user.panorama.plist` を生成して `launchctl load`
-7. 初回 `panorama update` を実行
+- 依存ツール (`node` / `git` / `tmux` / `launchctl`) の存在チェック
+- 設定ファイルの初期化 (`~/.config/panorama/config.yaml`)
+- Obsidian Vault に `Dashboard.md` を配置
+- Claude Code スキルと CLI コマンドの symlink 作成
+- launchd への登録と初回更新の実行
 
-## 使い方
+---
 
-### 新しいタスクを登録する
+## クイックガイド
 
-ghostty/tmux で新しい pane を開きプロジェクトディレクトリに `cd` してから、Claude Code で:
+インストールが終わったら、すぐに使い始められます。
+
+### 1. 作業を登録する
+
+tmux の pane でプロジェクトディレクトリに移動して、Claude Code に話しかけます。
 
 > このpaneの作業をダッシュボードに追加して
 
-スキルがカードを生成、180 秒以内に `branch` / `last-commit` / `last-activity` / `alive` が自動で埋まります。
+すると Obsidian の Kanban ボードにカードが作られます。180 秒以内にブランチ名やコミット情報が自動で反映されます。
 
-### pane を離れるとき
+### 2. 離席前にメモを残す
+
+pane を離れるときは一言伝えておきましょう。
 
 > 次にやること書き残しておいて
 
-### 1 日の終わり
+カードの「次にやること」セクションにメモが残り、戻ってきたときにすぐ思い出せます。
 
-Obsidian の Kanban UI で完了カードを ✅ 列に移動し、Claude Code で:
+### 3. 作業完了!
+
+タスクが終わったら、Obsidian の Kanban で完了カードを ✅ 列に移動してから:
 
 > この作業完了、アーカイブして
 
-## 運用のコツ
+カードがプロジェクトノートに履歴として保存され、ダッシュボードがすっきりします。
 
-- カードは pane 数 (8) を上限の目安に増やしすぎない
-- `<!-- auto -->` が付いた行は手で書かない（次回 updater に上書きされる）
-- 状態遷移 (🟢 ⇄ 🟡 ⇄ 🔴) は Obsidian Kanban UI で手動移動する
+---
+
+## 基本的な使い方
+
+### ダッシュボードの見方
+
+Obsidian で `Dashboard.md` を開くと、Kanban ボードとして表示されます。列は 4 つあります。
+
+| 列 | 意味 |
+|---|---|
+| 🟢 **対応中** | いま取り組んでいる作業 |
+| 🟡 **入力待ち** | 自分の入力やレビューを待っている作業 |
+| 🔴 **ブロック中** | 外部要因で止まっている作業 |
+| ✅ **完了** | 終わった作業 |
+
+カードの列間の移動は、Obsidian の Kanban UI でドラッグ & ドロップするだけです。
+
+### カードに自動で入る情報
+
+各カードには以下の情報が 180 秒ごとに自動更新されます。手で書き換える必要はありません。
+
+| フィールド | 内容 |
+|---|---|
+| `alive` | pane がまだ生きているか (✅ / ⚠️) |
+| `branch` | 現在の git ブランチ |
+| `last-commit` | 最新コミットの情報 (例: `2h ago · fix login form`) |
+| `last-activity` | ファイルの最終更新時刻 |
+
+### CLI コマンド
+
+```bash
+panorama update            # ダッシュボードを手動で更新
+panorama update --config PATH  # 設定ファイルを指定して更新
+panorama doctor            # インストール状態のチェック
+```
+
+---
+
+## 便利な使い方
+
+### プロジェクトノートを作る
+
+プロジェクトごとにノートを作っておくと、完了した作業の履歴がそこに蓄積されていきます。
+
+> プロジェクトノート作って
+
+`projects/` フォルダに概要・リンク・履歴セクションを持つノートが作成されます。
+
+### 設定をカスタマイズする
+
+`~/.config/panorama/config.yaml` を編集すると、各種設定を変更できます。
+
+```yaml
+# Obsidian Vault のパス
+vault_path: ~/Documents/Obsidian/work-dashboard
+
+# ダッシュボードのファイル名
+dashboard_file: Dashboard.md
+
+# 自動更新の間隔(秒)
+update_interval_seconds: 180
+```
+
+### 運用のコツ
+
+- **カードは増やしすぎない** — pane の数 (8 程度) を目安にしましょう
+- **`<!-- auto -->` 行は触らない** — 次回の自動更新で上書きされます
+- **列の移動は Obsidian で** — 🟢 ⇄ 🟡 ⇄ 🔴 の状態遷移は Kanban UI のドラッグ & ドロップで
+
+---
 
 ## 開発
 
@@ -63,7 +167,7 @@ cd ~/src/panorama
 npm test
 ```
 
-以降、`src/` や `skill/` を編集すれば launchd の次回実行時に反映されます（symlink のため）。
+symlink でインストールされるので、`src/` や `skill/` を編集すれば次回の launchd 実行時にそのまま反映されます。
 
 ## アンインストール
 
@@ -71,7 +175,7 @@ npm test
 ~/.local/share/panorama/uninstall.sh
 ```
 
-launchd プロセス停止と symlink / plist の削除のみで、Vault と `~/.config/panorama/config.yaml` は残します。
+launchd の停止と symlink / plist の削除を行います。Vault のデータと設定ファイル (`~/.config/panorama/config.yaml`) はそのまま残るので安心です。
 
 ## ライセンス
 
