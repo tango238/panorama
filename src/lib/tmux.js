@@ -54,7 +54,7 @@ export function capturePaneContent(target) {
 }
 
 const CLAUDE_STATUS_BAR = /\[(Opus|Sonnet|Haiku)\s/;
-const ACTIVE_INDICATOR = /[^\x00-\x7F]\s\S+…|⎿\s+Running…/;
+const ACTIVE_INDICATOR = /[^\x00-\x7F]\s.+…|⎿\s+Running…/;
 const PERMISSION_PROMPT = /Do you want to proceed\?/;
 
 export function detectClaudeCodeState(content) {
