@@ -105,19 +105,14 @@ export function runUpdate(config) {
     applyUpdatesToLines(lines, card, updates);
   }
 
-  // Phase 2: column transitions
-  const updatedText = lines.join('\n');
-  const freshCards = splitCards(updatedText);
-  const columns = findColumns(lines);
-  const moves = buildColumnTransitions(freshCards, columns, panes);
-
-  for (const { card, targetHeading } of moves) {
-    lines = moveCard(lines, card, targetHeading);
-    // Re-parse after each move since line numbers shift
-    const reparsed = splitCards(lines.join('\n'));
-    const newColumns = findColumns(lines);
-    const remaining = buildColumnTransitions(reparsed, newColumns, panes);
-    if (remaining.length === 0) break;
+  // Phase 2: column transitions — one move at a time with fresh line numbers
+  const MAX_MOVES = 10;
+  for (let i = 0; i < MAX_MOVES; i++) {
+    const currentCards = splitCards(lines.join('\n'));
+    const currentColumns = findColumns(lines);
+    const moves = buildColumnTransitions(currentCards, currentColumns, panes);
+    if (moves.length === 0) break;
+    lines = moveCard(lines, moves[0].card, moves[0].targetHeading);
   }
 
   writeFileSync(dashboardPath, lines.join('\n'));
