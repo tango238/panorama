@@ -55,7 +55,6 @@ tmux rename-window "{task}"
 - **{project} / {task}**
 	- **tmux:** {tmux-field-or-(tmux外)}
 	- **path:** {absolute-path}
-	- **alive:** (n/a) <!-- auto -->
 	- **branch:** (n/a) <!-- auto -->
 	- **last-commit:** (n/a) <!-- auto -->
 	- **last-activity:** (n/a) <!-- auto -->

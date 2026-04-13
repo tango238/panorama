@@ -4,14 +4,13 @@ import { splitCards, extractCardFields, rewriteAutoField, findColumns, getCardCo
 import { getBranch, getLastCommit } from './lib/git.js';
 import { getLastActivity } from './lib/fs-activity.js';
 import { formatRelative } from './lib/relative-time.js';
-import { listPanes, parseTmuxField, classifyAlive, readHookState, detectClaudeCodeState } from './lib/tmux.js';
+import { listPanes, parseTmuxField, readHookState, detectClaudeCodeState } from './lib/tmux.js';
 
-const AUTO_KEYS = ['alive', 'branch', 'last-commit', 'last-activity'];
+const AUTO_KEYS = ['branch', 'last-commit', 'last-activity'];
 
-function buildCardUpdates(card, panes) {
+function buildCardUpdates(card) {
   const fields = extractCardFields(card.body);
   const updates = {
-    alive: '(tmux外)',
     branch: '(n/a)',
     'last-commit': '(n/a)',
     'last-activity': '(n/a)',
@@ -27,15 +26,6 @@ function buildCardUpdates(card, panes) {
       if (activity !== null) updates['last-activity'] = formatRelative(activity);
     } catch {
       /* leave defaults */
-    }
-  }
-
-  if (fields.tmux !== undefined) {
-    const parsed = parseTmuxField(fields.tmux);
-    if (panes === null) {
-      updates.alive = '(tmux外)';
-    } else {
-      updates.alive = classifyAlive(parsed, panes);
     }
   }
 
@@ -100,7 +90,7 @@ export function runUpdate(config) {
 
   // Phase 1: auto field updates
   for (const card of cards) {
-    const updates = buildCardUpdates(card, panes);
+    const updates = buildCardUpdates(card);
     applyUpdatesToLines(lines, card, updates);
   }
 
