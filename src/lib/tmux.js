@@ -64,13 +64,11 @@ export function detectClaudeCodeState(content) {
   const hasStatusBar = lines.some(line => CLAUDE_STATUS_BAR.test(line));
   if (!hasStatusBar) return null;
 
-  // Permission prompts take priority
-  const hasPermission = lines.some(line => PERMISSION_PROMPT.test(line));
-  if (hasPermission) return 'permission';
-
-  // Only check the last 10 non-empty lines for active indicators
-  // to avoid false positives from old tool output still visible in pane
+  // Only check recent lines to avoid stale output in pane history
   const tail = lines.slice(-10);
+
+  const hasPermission = tail.some(line => PERMISSION_PROMPT.test(line));
+  if (hasPermission) return 'permission';
   const isActive = tail.some(line => ACTIVE_INDICATOR.test(line));
   return isActive ? 'active' : 'waiting';
 }
