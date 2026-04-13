@@ -4,7 +4,7 @@ import { splitCards, extractCardFields, rewriteAutoField, findColumns, getCardCo
 import { getBranch, getLastCommit } from './lib/git.js';
 import { getLastActivity } from './lib/fs-activity.js';
 import { formatRelative } from './lib/relative-time.js';
-import { listPanes, parseTmuxField, classifyAlive, capturePaneContent, detectClaudeCodeState } from './lib/tmux.js';
+import { listPanes, parseTmuxField, classifyAlive, readHookState, detectClaudeCodeState } from './lib/tmux.js';
 
 const AUTO_KEYS = ['alive', 'branch', 'last-commit', 'last-activity'];
 
@@ -62,7 +62,7 @@ function targetColumnFor(state) {
   return null;
 }
 
-function buildColumnTransitions(cards, columns, panes) {
+function buildColumnTransitions(cards, columns, panes, idleThreshold) {
   const moves = [];
   for (const card of cards) {
     const fields = extractCardFields(card.body);
@@ -76,9 +76,8 @@ function buildColumnTransitions(cards, columns, panes) {
     const tmuxInfo = parseTmuxField(fields.tmux || '');
     if (!tmuxInfo) continue;
 
-    const target = `${tmuxInfo.session}:${tmuxInfo.windowIndex}.${tmuxInfo.paneIndex}`;
-    const content = capturePaneContent(target);
-    const state = detectClaudeCodeState(content);
+    const hookState = readHookState(tmuxInfo.session, tmuxInfo.windowIndex, tmuxInfo.paneIndex);
+    const state = detectClaudeCodeState(hookState, idleThreshold);
     if (state === null) continue;
 
     const destCol = targetColumnFor(state);
@@ -106,11 +105,13 @@ export function runUpdate(config) {
   }
 
   // Phase 2: column transitions — one move at a time with fresh line numbers
+  const interval = config.update_interval_seconds || 180;
+  const idleThreshold = Math.ceil(interval * 1.5);
   const MAX_MOVES = 10;
   for (let i = 0; i < MAX_MOVES; i++) {
     const currentCards = splitCards(lines.join('\n'));
     const currentColumns = findColumns(lines);
-    const moves = buildColumnTransitions(currentCards, currentColumns, panes);
+    const moves = buildColumnTransitions(currentCards, currentColumns, panes, idleThreshold);
     if (moves.length === 0) break;
     lines = moveCard(lines, moves[0].card, moves[0].targetHeading);
   }
