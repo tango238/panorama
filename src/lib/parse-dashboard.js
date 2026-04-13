@@ -1,4 +1,4 @@
-const CARD_ITEM = /^- \*\*.+\*\*\s*$/;
+const CARD_ITEM = /^- .+$/;
 const COLUMN_HEADING = /^## /;
 
 export function splitCards(text) {
@@ -54,4 +54,40 @@ export function rewriteAutoField(line, key, newValue) {
   if (!m) return line;
   if (m[2] !== key) return line;
   return `${m[1]}${newValue}${m[4]}`;
+}
+
+export function findColumns(lines) {
+  const columns = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (COLUMN_HEADING.test(lines[i])) {
+      columns.push({ heading: lines[i].trim(), line: i });
+    }
+  }
+  return columns;
+}
+
+export function getCardColumn(card, columns) {
+  for (let i = columns.length - 1; i >= 0; i--) {
+    if (columns[i].line < card.startLine) {
+      return columns[i];
+    }
+  }
+  return null;
+}
+
+export function moveCard(lines, card, targetColumnHeading) {
+  const targetCol = lines.findIndex(l => l.trim() === targetColumnHeading);
+  if (targetCol === -1) return lines;
+
+  const cardContent = lines.slice(card.startLine, card.endLine + 1);
+
+  const result = [
+    ...lines.slice(0, card.startLine),
+    ...lines.slice(card.endLine + 1),
+  ];
+
+  const newTargetCol = result.findIndex(l => l.trim() === targetColumnHeading);
+  result.splice(newTargetCol + 1, 0, '', ...cardContent);
+
+  return result;
 }
