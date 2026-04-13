@@ -105,6 +105,22 @@ describe('detectClaudeCodeState', () => {
     assert.equal(detectClaudeCodeState(content), 'permission');
   });
 
+  it('detects permission prompt even without status bar', () => {
+    // Permission dialog can push status bar off-screen
+    const content = [
+      '  ⎿  Running…',
+      '─'.repeat(80),
+      ' Bash command',
+      '   mkdir -p /some/path',
+      '   Create directory',
+      ' Do you want to proceed?',
+      ' ❯ 1. Yes',
+      '   2. No',
+      ' Esc to cancel',
+    ].join('\n');
+    assert.equal(detectClaudeCodeState(content), 'permission');
+  });
+
   it('does not detect old permission prompt outside tail', () => {
     const filler = Array(20).fill('some output line');
     const content = [

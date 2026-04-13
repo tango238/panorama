@@ -61,14 +61,16 @@ export function detectClaudeCodeState(content) {
   if (content === null) return null;
   const lines = content.split(/\r?\n/).filter(l => l.trim().length > 0);
 
-  const hasStatusBar = lines.some(line => CLAUDE_STATUS_BAR.test(line));
-  if (!hasStatusBar) return null;
-
   // Only check recent lines to avoid stale output in pane history
   const tail = lines.slice(-10);
 
+  // Permission dialog can push status bar off-screen, so check first
   const hasPermission = tail.some(line => PERMISSION_PROMPT.test(line));
   if (hasPermission) return 'permission';
+
+  const hasStatusBar = lines.some(line => CLAUDE_STATUS_BAR.test(line));
+  if (!hasStatusBar) return null;
+
   const isActive = tail.some(line => ACTIVE_INDICATOR.test(line));
   return isActive ? 'active' : 'waiting';
 }
