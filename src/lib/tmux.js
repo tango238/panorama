@@ -46,7 +46,7 @@ export function listPanes() {
 }
 
 const STATE_DIR = join(homedir(), '.config/panorama/states');
-const IDLE_THRESHOLD_SEC = 30;
+const DEFAULT_IDLE_THRESHOLD_SEC = 90;
 
 export function readHookState(session, windowIndex, paneIndex) {
   const file = join(STATE_DIR, `${session}-${windowIndex}.${paneIndex}.json`);
@@ -58,15 +58,15 @@ export function readHookState(session, windowIndex, paneIndex) {
   }
 }
 
-export function detectClaudeCodeState(hookState) {
+export function detectClaudeCodeState(hookState, idleThreshold = DEFAULT_IDLE_THRESHOLD_SEC) {
   if (hookState === null) return null;
 
   const elapsed = Math.floor(Date.now() / 1000) - hookState.timestamp;
 
-  if (hookState.state === 'permission' && elapsed < IDLE_THRESHOLD_SEC) {
+  if (hookState.state === 'permission' && elapsed < idleThreshold) {
     return 'permission';
   }
-  if (elapsed < IDLE_THRESHOLD_SEC) {
+  if (elapsed < idleThreshold) {
     return 'active';
   }
   return 'waiting';

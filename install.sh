@@ -66,7 +66,32 @@ launchctl unload "$LAUNCHD_PLIST" 2>/dev/null || true
 launchctl load "$LAUNCHD_PLIST"
 echo "Loaded launchd plist $LAUNCHD_PLIST"
 
-# 7. 初回 update
+# 7. Claude Code hook 登録
+SETTINGS_FILE="$HOME/.claude/settings.json"
+HOOK_CMD="$REPO_DIR/hooks/notify-state.sh active"
+if [ -f "$SETTINGS_FILE" ]; then
+  if ! grep -q "notify-state.sh" "$SETTINGS_FILE" 2>/dev/null; then
+    # jq があれば自動登録、なければ手動案内
+    if command -v jq >/dev/null 2>&1; then
+      HOOK_ENTRY='{"hooks":[{"type":"command","command":"'"$HOOK_CMD"'"}]}'
+      TMP_SETTINGS=$(mktemp)
+      jq --argjson hook "$HOOK_ENTRY" '
+        .hooks.PreToolUse = ((.hooks.PreToolUse // []) + [$hook])
+      ' "$SETTINGS_FILE" > "$TMP_SETTINGS" && mv "$TMP_SETTINGS" "$SETTINGS_FILE"
+      echo "Registered PreToolUse hook in $SETTINGS_FILE"
+    else
+      echo "NOTE: Add this hook to $SETTINGS_FILE manually:"
+      echo "  PreToolUse -> $HOOK_CMD"
+    fi
+  else
+    echo "Hook already registered in $SETTINGS_FILE"
+  fi
+else
+  echo "NOTE: $SETTINGS_FILE not found. Create it and add PreToolUse hook:"
+  echo "  $HOOK_CMD"
+fi
+
+# 8. 初回 update
 "$CLI_LINK" update --config "$CONFIG_FILE" || true
 
 echo
