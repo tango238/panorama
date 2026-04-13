@@ -51,16 +51,7 @@ function applyUpdatesToLines(lines, card, updates) {
 }
 
 const COL_ACTIVE = '## 🟢 対応中';
-const COL_PERMISSION = '## 🟠 許可待ち';
 const COL_WAITING = '## 🟡 入力待ち';
-const AUTO_COLUMNS = [COL_ACTIVE, COL_PERMISSION, COL_WAITING];
-
-function targetColumnFor(state) {
-  if (state === 'active') return COL_ACTIVE;
-  if (state === 'permission') return COL_PERMISSION;
-  if (state === 'waiting') return COL_WAITING;
-  return null;
-}
 
 function buildColumnTransitions(cards, columns, panes) {
   const moves = [];
@@ -68,10 +59,6 @@ function buildColumnTransitions(cards, columns, panes) {
     const fields = extractCardFields(card.body);
     const currentCol = getCardColumn(card, columns);
     if (!currentCol) continue;
-
-    // Only auto-transition cards in auto-managed columns
-    const inAutoCol = AUTO_COLUMNS.some(c => currentCol.heading.includes(c.slice(3)));
-    if (!inAutoCol) continue;
 
     const tmuxInfo = parseTmuxField(fields.tmux || '');
     if (!tmuxInfo) continue;
@@ -81,13 +68,14 @@ function buildColumnTransitions(cards, columns, panes) {
     const state = detectClaudeCodeState(content);
     if (state === null) continue;
 
-    const destCol = targetColumnFor(state);
-    if (!destCol) continue;
+    const inActive = currentCol.heading.includes('🟢');
+    const inWaiting = currentCol.heading.includes('🟡');
 
-    const alreadyInDest = currentCol.heading.includes(destCol.slice(3));
-    if (alreadyInDest) continue;
-
-    moves.push({ card, targetHeading: destCol });
+    if (state === 'waiting' && inActive) {
+      moves.push({ card, targetHeading: COL_WAITING });
+    } else if (state === 'active' && inWaiting) {
+      moves.push({ card, targetHeading: COL_ACTIVE });
+    }
   }
   return moves;
 }

@@ -54,8 +54,7 @@ export function capturePaneContent(target) {
 }
 
 const CLAUDE_STATUS_BAR = /\[(Opus|Sonnet|Haiku)\s/;
-const ACTIVE_INDICATOR = /✶\s.+…|✢\s.+…|⎿\s+Running…/;
-const PERMISSION_PROMPT = /Do you want to proceed\?/;
+const ACTIVE_INDICATOR = /✶\s.+…|⎿\s+Running…/;
 
 export function detectClaudeCodeState(content) {
   if (content === null) return null;
@@ -64,14 +63,7 @@ export function detectClaudeCodeState(content) {
   const hasStatusBar = lines.some(line => CLAUDE_STATUS_BAR.test(line));
   if (!hasStatusBar) return null;
 
-  // Permission prompts take priority
-  const hasPermission = lines.some(line => PERMISSION_PROMPT.test(line));
-  if (hasPermission) return 'permission';
-
-  // Only check the last 10 non-empty lines for active indicators
-  // to avoid false positives from old tool output still visible in pane
-  const tail = lines.slice(-10);
-  const isActive = tail.some(line => ACTIVE_INDICATOR.test(line));
+  const isActive = lines.some(line => ACTIVE_INDICATOR.test(line));
   return isActive ? 'active' : 'waiting';
 }
 
