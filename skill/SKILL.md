@@ -1,6 +1,6 @@
 ---
 name: panorama
-description: Use when the user wants to register the current tmux pane's work into the Obsidian Kanban dashboard, add "next to do" notes for a pane, archive a completed card, or create a project note. Trigger phrases include "ダッシュボードに追加", "今の作業を登録", "次にやること", "申し送り", "この作業完了", "アーカイブして", "プロジェクトノート作って".
+description: Use when the user wants to register the current tmux pane's work into the Obsidian Kanban dashboard, archive a completed card, or create a project note. Trigger phrases include "ダッシュボードに追加", "今の作業を登録", "この作業完了", "アーカイブして", "プロジェクトノート作って".
 ---
 
 # panorama — Obsidian Kanban ダッシュボード操作スキル
@@ -41,9 +41,15 @@ else
 fi
 ```
 
-3. ユーザにタスク名を聞く（直近の会話文脈があればそれを提案して確認）。例: "project-a / feat login"
+3. タスク名を決定する。引数が渡されていればそれをそのまま使う。なければ、このセッションの会話履歴から直近の作業内容を要約して短いタスク名を提案し、ユーザに確認する。例: 「panorama / Kanbanカード形式の修正」でよいですか？
 
-4. `$VAULT/Dashboard.md` を読み、`## 🟢 対応中` の直下に次のカードを挿入する（タブでインデント）:
+4. tmux 配下の場合、現在のウィンドウ名をタスク名に設定する:
+
+```bash
+tmux rename-window "{task}"
+```
+
+5. `$VAULT/Dashboard.md` を読み、`## 🟢 対応中` の直下に次のカードを挿入する（タブでインデント）:
 
 ```markdown
 - **{project} / {task}**
@@ -53,25 +59,10 @@ fi
 	- **branch:** (n/a) <!-- auto -->
 	- **last-commit:** (n/a) <!-- auto -->
 	- **last-activity:** (n/a) <!-- auto -->
-	- **次にやること:**
-		- [ ] 
-	- **メモ:**
-		- 
 	- → [[projects/{project}]]
 ```
 
-5. ファイルを保存。次回 updater 実行（最大 180 秒）で auto フィールドが埋まる旨をユーザに伝える。
-
-## 操作 C: 「次にやること」の追記
-
-トリガ: 「次にやること」「申し送り」
-
-手順:
-
-1. `pwd` を取得
-2. Dashboard.md を読み、各カードの `path:` フィールドを突合してカレントパスに一致するカードを特定
-3. 該当カードの `**次にやること:**` セクションに `- [ ] {user-supplied-or-inferred-text}` を追記（タブ2つでインデント）
-4. 該当カードが見つからなければ、ユーザにそう伝える（勝手に新規作成しない）
+6. ファイルを保存。次回 updater 実行（最大 180 秒）で auto フィールドが埋まる旨をユーザに伝える。
 
 ## 操作 D: 完了アーカイブ
 

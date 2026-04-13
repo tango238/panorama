@@ -42,6 +42,31 @@ export function listPanes() {
   }
 }
 
+export function capturePaneContent(target) {
+  try {
+    return execFileSync('tmux', ['capture-pane', '-p', '-t', target], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+  } catch {
+    return null;
+  }
+}
+
+const CLAUDE_STATUS_BAR = /\[(Opus|Sonnet|Haiku)\s/;
+const ACTIVE_INDICATOR = /✶\s.+…|⎿\s+Running…/;
+
+export function detectClaudeCodeState(content) {
+  if (content === null) return null;
+  const lines = content.split(/\r?\n/).filter(l => l.trim().length > 0);
+
+  const hasStatusBar = lines.some(line => CLAUDE_STATUS_BAR.test(line));
+  if (!hasStatusBar) return null;
+
+  const isActive = lines.some(line => ACTIVE_INDICATOR.test(line));
+  return isActive ? 'active' : 'waiting';
+}
+
 export function classifyAlive(card, panes) {
   if (card === null) return '(tmux外)';
   const sameSessionAndPane = panes.filter(
