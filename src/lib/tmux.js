@@ -1,4 +1,7 @@
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { homedir } from 'node:os';
 
 export function parseTmuxField(text) {
   const trimmed = text.trim();
@@ -42,37 +45,31 @@ export function listPanes() {
   }
 }
 
-export function capturePaneContent(target) {
+const STATE_DIR = join(homedir(), '.config/panorama/states');
+const IDLE_THRESHOLD_SEC = 30;
+
+export function readHookState(session, windowIndex, paneIndex) {
+  const file = join(STATE_DIR, `${session}-${windowIndex}.${paneIndex}.json`);
   try {
-    return execFileSync('tmux', ['capture-pane', '-p', '-t', target], {
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore'],
-    });
+    const raw = readFileSync(file, 'utf8');
+    return JSON.parse(raw);
   } catch {
     return null;
   }
 }
 
-const CLAUDE_STATUS_BAR = /\[(Opus|Sonnet|Haiku)\s/;
-const ACTIVE_INDICATOR = /^[^\x00-\x7F]\s.+…|⎿\s+Running…/;
-const PERMISSION_PROMPT = /Do you want to proceed\?/;
+export function detectClaudeCodeState(hookState) {
+  if (hookState === null) return null;
 
-export function detectClaudeCodeState(content) {
-  if (content === null) return null;
-  const lines = content.split(/\r?\n/).filter(l => l.trim().length > 0);
+  const elapsed = Math.floor(Date.now() / 1000) - hookState.timestamp;
 
-  // Only check recent lines to avoid stale output in pane history
-  const tail = lines.slice(-10);
-
-  // Permission dialog can push status bar off-screen, so check first
-  const hasPermission = tail.some(line => PERMISSION_PROMPT.test(line));
-  if (hasPermission) return 'permission';
-
-  const hasStatusBar = lines.some(line => CLAUDE_STATUS_BAR.test(line));
-  if (!hasStatusBar) return null;
-
-  const isActive = tail.some(line => ACTIVE_INDICATOR.test(line));
-  return isActive ? 'active' : 'waiting';
+  if (hookState.state === 'permission' && elapsed < IDLE_THRESHOLD_SEC) {
+    return 'permission';
+  }
+  if (elapsed < IDLE_THRESHOLD_SEC) {
+    return 'active';
+  }
+  return 'waiting';
 }
 
 export function classifyAlive(card, panes) {

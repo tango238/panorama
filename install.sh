@@ -23,7 +23,7 @@ done
 NODE_BIN="$(command -v node)"
 
 # 2. config 初期化
-mkdir -p "$CONFIG_DIR"
+mkdir -p "$CONFIG_DIR" "$CONFIG_DIR/states"
 if [ ! -f "$CONFIG_FILE" ]; then
   cp "$REPO_DIR/config.example.yaml" "$CONFIG_FILE"
   echo "Created $CONFIG_FILE"

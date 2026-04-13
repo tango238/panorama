@@ -4,7 +4,7 @@ import { splitCards, extractCardFields, rewriteAutoField, findColumns, getCardCo
 import { getBranch, getLastCommit } from './lib/git.js';
 import { getLastActivity } from './lib/fs-activity.js';
 import { formatRelative } from './lib/relative-time.js';
-import { listPanes, parseTmuxField, classifyAlive, capturePaneContent, detectClaudeCodeState } from './lib/tmux.js';
+import { listPanes, parseTmuxField, classifyAlive, readHookState, detectClaudeCodeState } from './lib/tmux.js';
 
 const AUTO_KEYS = ['alive', 'branch', 'last-commit', 'last-activity'];
 
@@ -76,9 +76,8 @@ function buildColumnTransitions(cards, columns, panes) {
     const tmuxInfo = parseTmuxField(fields.tmux || '');
     if (!tmuxInfo) continue;
 
-    const target = `${tmuxInfo.session}:${tmuxInfo.windowIndex}.${tmuxInfo.paneIndex}`;
-    const content = capturePaneContent(target);
-    const state = detectClaudeCodeState(content);
+    const hookState = readHookState(tmuxInfo.session, tmuxInfo.windowIndex, tmuxInfo.paneIndex);
+    const state = detectClaudeCodeState(hookState);
     if (state === null) continue;
 
     const destCol = targetColumnFor(state);
