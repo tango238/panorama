@@ -30,14 +30,13 @@ kanban-plugin: basic
 
 ## 🟢 対応中
 
-### project-a / feat login
-
-- **tmux:** (tmux外)
-- **path:** ${projectDir}
-- **alive:** (tmux外) <!-- auto -->
-- **branch:** (n/a) <!-- auto -->
-- **last-commit:** (n/a) <!-- auto -->
-- **last-activity:** (n/a) <!-- auto -->
+- **project-a / feat login**
+\t- **tmux:** (tmux外)
+\t- **path:** ${projectDir}
+\t- **alive:** (tmux外) <!-- auto -->
+\t- **branch:** (n/a) <!-- auto -->
+\t- **last-commit:** (n/a) <!-- auto -->
+\t- **last-activity:** (n/a) <!-- auto -->
 
 ## ✅ 完了
 `;
@@ -46,10 +45,10 @@ kanban-plugin: basic
   runUpdate({ vault_path: vault, dashboard_file: 'Dashboard.md' });
 
   const after = readFileSync(dashboardPath, 'utf8');
-  assert.match(after, /- \*\*branch:\*\* feature\/login <!-- auto -->/);
-  assert.match(after, /- \*\*last-commit:\*\* .+ · initial <!-- auto -->/);
-  assert.match(after, /- \*\*last-activity:\*\* .+ <!-- auto -->/);
-  assert.match(after, /- \*\*alive:\*\* \(tmux外\) <!-- auto -->/);
+  assert.match(after, /\*\*branch:\*\* feature\/login <!-- auto -->/);
+  assert.match(after, /\*\*last-commit:\*\* .+ · initial <!-- auto -->/);
+  assert.match(after, /\*\*last-activity:\*\* .+ <!-- auto -->/);
+  assert.match(after, /\*\*alive:\*\* \(tmux外\) <!-- auto -->/);
 });
 
 test('runUpdate: non-existent path gets (n/a)', () => {
@@ -57,14 +56,13 @@ test('runUpdate: non-existent path gets (n/a)', () => {
   const dashboardPath = join(vault, 'Dashboard.md');
   const dashboard = `## 🟢 対応中
 
-### broken card
-
-- **tmux:** (tmux外)
-- **path:** /nonexistent/xyz-panorama-test
-- **alive:** (tmux外) <!-- auto -->
-- **branch:** old <!-- auto -->
-- **last-commit:** old <!-- auto -->
-- **last-activity:** old <!-- auto -->
+- **broken card**
+\t- **tmux:** (tmux外)
+\t- **path:** /nonexistent/xyz-panorama-test
+\t- **alive:** (tmux外) <!-- auto -->
+\t- **branch:** old <!-- auto -->
+\t- **last-commit:** old <!-- auto -->
+\t- **last-activity:** old <!-- auto -->
 `;
   writeFileSync(dashboardPath, dashboard);
 
@@ -82,20 +80,15 @@ test('runUpdate: does not touch non-auto lines', () => {
   const dashboardPath = join(vault, 'Dashboard.md');
   const dashboard = `## 🟢 対応中
 
-### project-a / feat login
-
-- **tmux:** (tmux外)
-- **path:** ${projectDir}
-- **alive:** (tmux外) <!-- auto -->
-- **branch:** (n/a) <!-- auto -->
-- **last-commit:** (n/a) <!-- auto -->
-- **last-activity:** (n/a) <!-- auto -->
-
-### 次にやること
-- [ ] don't touch me
-
-### メモ
-- also don't touch me
+- **project-a / feat login**
+\t- **tmux:** (tmux外)
+\t- **path:** ${projectDir}
+\t- **alive:** (tmux外) <!-- auto -->
+\t- **branch:** (n/a) <!-- auto -->
+\t- **last-commit:** (n/a) <!-- auto -->
+\t- **last-activity:** (n/a) <!-- auto -->
+\t- don't touch me
+\t- also don't touch me
 `;
   writeFileSync(dashboardPath, dashboard);
 

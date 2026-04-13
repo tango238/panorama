@@ -8,26 +8,23 @@ kanban-plugin: basic
 
 ## 🟢 対応中
 
-### project-a / feat login
+- **project-a / feat login**
+\t- **tmux:** \`work:feat-login\` (window #2, pane #1)
+\t- **path:** /tmp/project-a
+\t- **alive:** ✅ <!-- auto -->
+\t- **branch:** main <!-- auto -->
+\t- **last-commit:** (n/a) <!-- auto -->
+\t- **last-activity:** (n/a) <!-- auto -->
+\t- → [[projects/project-a]]
 
-- **tmux:** \`work:feat-login\` (window #2, pane #1)
-- **path:** /tmp/project-a
-- **alive:** ✅ <!-- auto -->
-- **branch:** main <!-- auto -->
-- **last-commit:** (n/a) <!-- auto -->
-- **last-activity:** (n/a) <!-- auto -->
-
-### 次にやること
-- [ ] hook up API
-
-### project-b / refactor
-
-- **tmux:** (tmux外)
-- **path:** /tmp/project-b
-- **alive:** (tmux外) <!-- auto -->
-- **branch:** (n/a) <!-- auto -->
-- **last-commit:** (n/a) <!-- auto -->
-- **last-activity:** (n/a) <!-- auto -->
+- **project-b / refactor**
+\t- **tmux:** (tmux外)
+\t- **path:** /tmp/project-b
+\t- **alive:** (tmux外) <!-- auto -->
+\t- **branch:** (n/a) <!-- auto -->
+\t- **last-commit:** (n/a) <!-- auto -->
+\t- **last-activity:** (n/a) <!-- auto -->
+\t- → [[projects/project-b]]
 
 ## 🟡 入力待ち
 
