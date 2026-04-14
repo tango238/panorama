@@ -5,6 +5,7 @@
 #
 # Called from Claude Code hooks (PreToolUse / PostToolUse).
 # The updater reads these files to determine card column transitions.
+# State files are keyed by the working directory path (matching card's path field).
 
 set -euo pipefail
 
@@ -12,15 +13,9 @@ STATE="${1:-active}"
 STATE_DIR="$HOME/.config/panorama/states"
 mkdir -p "$STATE_DIR"
 
-# Identify pane by tmux session + pane index (stable across window renames)
-if [ -z "${TMUX:-}" ]; then
-  exit 0
-fi
-
-SESSION=$(tmux display-message -p '#S')
-PANE_INDEX=$(tmux display-message -p '#P')
-WINDOW_INDEX=$(tmux display-message -p '#I')
-STATE_FILE="$STATE_DIR/${SESSION}-${WINDOW_INDEX}.${PANE_INDEX}.json"
+# Key by working directory path (sanitized for filename)
+PATH_KEY=$(pwd | sed 's|/|_|g')
+STATE_FILE="$STATE_DIR/${PATH_KEY}.json"
 
 # Write state with epoch timestamp
 cat > "$STATE_FILE" <<EOF

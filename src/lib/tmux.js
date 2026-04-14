@@ -48,8 +48,9 @@ export function listPanes() {
 const STATE_DIR = join(homedir(), '.config/panorama/states');
 const DEFAULT_IDLE_THRESHOLD_SEC = 90;
 
-export function readHookState(session, windowIndex, paneIndex) {
-  const file = join(STATE_DIR, `${session}-${windowIndex}.${paneIndex}.json`);
+export function readHookState(cardPath) {
+  const pathKey = cardPath.replace(/\//g, '_');
+  const file = join(STATE_DIR, `${pathKey}.json`);
   try {
     const raw = readFileSync(file, 'utf8');
     return JSON.parse(raw);
