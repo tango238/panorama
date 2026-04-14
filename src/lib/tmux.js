@@ -73,6 +73,22 @@ export function detectClaudeCodeState(hookState, idleThreshold = DEFAULT_IDLE_TH
   return 'waiting';
 }
 
+const PERMISSION_PROMPT = /Do you want to proceed\?/;
+
+export function detectPermissionFromPane(target) {
+  try {
+    const content = execFileSync('tmux', ['capture-pane', '-p', '-t', target], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    const lines = content.split(/\r?\n/).filter(l => l.trim().length > 0);
+    const tail = lines.slice(-10);
+    return tail.some(line => PERMISSION_PROMPT.test(line));
+  } catch {
+    return false;
+  }
+}
+
 export function classifyAlive(card, panes) {
   if (card === null) return '(tmux外)';
   const sameSessionAndPane = panes.filter(
