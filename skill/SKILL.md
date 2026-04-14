@@ -53,11 +53,8 @@ tmux rename-window "{task}"
 
 ```markdown
 - **{project} / {task}**
-	- **tmux:** {tmux-field-or-(tmux外)}
 	- **path:** {absolute-path}
 	- **branch:** (n/a) <!-- auto -->
-	- **last-commit:** (n/a) <!-- auto -->
-	- **last-activity:** (n/a) <!-- auto -->
 	- → [[projects/{project}]]
 ```
 
