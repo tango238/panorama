@@ -50,33 +50,31 @@ const DEFAULT_IDLE_THRESHOLD_SEC = 90;
 
 export function readHookState(cardPath) {
   const pathKey = cardPath.replace(/\//g, '_');
-  const file = join(STATE_DIR, `${pathKey}.json`);
+  let best = null;
+
+  // Check direct state file
   try {
-    const raw = readFileSync(file, 'utf8');
-    return JSON.parse(raw);
-  } catch {
-    // fallback: check worktree state files (path/.worktrees/*)
-    try {
-      const prefix = `${pathKey}_.worktrees_`;
-      const files = readdirSync(STATE_DIR)
-        .filter(f => f.startsWith(prefix) && f.endsWith('.json'));
-      if (files.length === 0) return null;
-      // pick most recently written
-      let best = null;
-      for (const f of files) {
-        try {
-          const raw = readFileSync(join(STATE_DIR, f), 'utf8');
-          const parsed = JSON.parse(raw);
-          if (!best || parsed.timestamp > best.timestamp) {
-            best = parsed;
-          }
-        } catch { /* skip */ }
-      }
-      return best;
-    } catch {
-      return null;
+    const raw = readFileSync(join(STATE_DIR, `${pathKey}.json`), 'utf8');
+    best = JSON.parse(raw);
+  } catch { /* no direct file */ }
+
+  // Check worktree state files (path/.worktrees/*) and pick newest
+  try {
+    const prefix = `${pathKey}_.worktrees_`;
+    const files = readdirSync(STATE_DIR)
+      .filter(f => f.startsWith(prefix) && f.endsWith('.json'));
+    for (const f of files) {
+      try {
+        const raw = readFileSync(join(STATE_DIR, f), 'utf8');
+        const parsed = JSON.parse(raw);
+        if (!best || parsed.timestamp > best.timestamp) {
+          best = parsed;
+        }
+      } catch { /* skip */ }
     }
-  }
+  } catch { /* no worktree files */ }
+
+  return best;
 }
 
 export function detectClaudeCodeState(hookState, idleThreshold = DEFAULT_IDLE_THRESHOLD_SEC) {
