@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 
@@ -55,7 +55,27 @@ export function readHookState(cardPath) {
     const raw = readFileSync(file, 'utf8');
     return JSON.parse(raw);
   } catch {
-    return null;
+    // fallback: check worktree state files (path/.worktrees/*)
+    try {
+      const prefix = `${pathKey}_.worktrees_`;
+      const files = readdirSync(STATE_DIR)
+        .filter(f => f.startsWith(prefix) && f.endsWith('.json'));
+      if (files.length === 0) return null;
+      // pick most recently written
+      let best = null;
+      for (const f of files) {
+        try {
+          const raw = readFileSync(join(STATE_DIR, f), 'utf8');
+          const parsed = JSON.parse(raw);
+          if (!best || parsed.timestamp > best.timestamp) {
+            best = parsed;
+          }
+        } catch { /* skip */ }
+      }
+      return best;
+    } catch {
+      return null;
+    }
   }
 }
 
