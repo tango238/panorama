@@ -1,88 +1,107 @@
 ---
 name: panorama
-description: Use when the user wants to register the current tmux pane's work into the Obsidian Kanban dashboard, archive a completed card, or create a project note. Trigger phrases include "ダッシュボードに追加", "今の作業を登録", "この作業完了", "アーカイブして", "プロジェクトノート作って".
+description: "Obsidian Kanban ダッシュボードのタスク管理。サブコマンド: /panorama new, /panorama update, /panorama done, /panorama block, /panorama unblock"
 ---
 
-# panorama — Obsidian Kanban ダッシュボード操作スキル
+# panorama — Obsidian Kanban タスク管理
 
-このスキルは、macOS 上の panorama システム（`~/Documents/Obsidian/work-dashboard/Dashboard.md` を Kanban として運用する）のカード操作を行う。auto マーカー付きフィールド（alive / branch / last-commit / last-activity）は絶対に手で書かない。
+サブコマンドで操作する。引数でサブコマンドを判別:
+
+| コマンド | 動作 |
+|---|---|
+| `/panorama new [名前]` | 既存タスク完了 → 新タスク作成 → 🟢 対応中 |
+| `/panorama update` | タスク名・セッションID更新、コンテキスト70%超で compact |
+| `/panorama done` | タスクをアーカイブして削除 |
+| `/panorama block` | 🔴 ブロック中に移動 |
+| `/panorama unblock` | 🟢 対応中に戻す |
+
+引数なしの `/panorama` は `/panorama new` として扱う。
 
 ## 前提
 
-- Vault パス: `~/Documents/Obsidian/work-dashboard`（config.yaml で上書き可能だが、スキルは既定値で動く）
+- Vault: `~/Documents/Obsidian/work-dashboard`
 - Dashboard: `$VAULT/Dashboard.md`
 - プロジェクトノート: `$VAULT/projects/<name>.md`
-- auto 行のマーカー: 行末に `<!-- auto -->` を必ず残す
+- auto マーカー: 行末 `<!-- auto -->` は絶対に手で書かない
+- セッションID: `<!-- session: {id} -->` としてHTMLコメントで埋め込み
 
-## 操作 A: 新カード追加
+### セッションID取得
 
-トリガ: 「ダッシュボードに追加」「今の作業を登録」
+```bash
+PROJECT_DIR="$HOME/.claude/projects/$(pwd | sed 's|/|-|g; s|^-||')"
+SESSION_ID=$(ls -t "$PROJECT_DIR"/*.jsonl 2>/dev/null | head -1 | xargs basename | sed 's/\.jsonl$//')
+```
 
-手順:
+---
 
-1. 現在のコンテキストを取得:
+## /panorama new [名前]
+
+1. コンテキスト取得:
 
 ```bash
 pwd
 git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "(n/a)"
 ```
 
-2. tmux コンテキストを取得（tmux 配下でない場合は `(tmux外)` を使う）:
+2. セッションID取得:
 
 ```bash
-if [ -n "$TMUX" ]; then
-  S=$(tmux display-message -p '#S')
-  W=$(tmux display-message -p '#W')
-  I=$(tmux display-message -p '#I')
-  P=$(tmux display-message -p '#P')
-  echo "\`$S:$W\` (window #$I, pane #$P)"
-else
-  echo "(tmux外)"
-fi
+PROJECT_DIR="$HOME/.claude/projects/$(pwd | sed 's|/|-|g; s|^-||')"
+SESSION_ID=$(ls -t "$PROJECT_DIR"/*.jsonl 2>/dev/null | head -1 | xargs basename | sed 's/\.jsonl$//')
 ```
 
-3. タスク名を決定する。引数が渡されていればそれをそのまま使う。なければ、このセッションの会話履歴から直近の作業内容を要約して短いタスク名を提案し、ユーザに確認する。例: 「panorama / Kanbanカード形式の修正」でよいですか？
+3. `$VAULT/Dashboard.md` を読み、同じ `path` のカードを 🟢/🟠/🟡 から検索。見つかれば `/panorama done` と同じ手順で自動完了する。
 
-4. tmux 配下の場合、現在のウィンドウ名をタスク名に設定する:
+4. タスク名を決定。引数があればそのまま使用。なければ会話履歴から提案して確認。
+
+5. tmux 配下の場合、ウィンドウ名を変更:
 
 ```bash
 tmux rename-window "{task}"
 ```
 
-5. `$VAULT/Dashboard.md` を読み、`## 🟢 対応中` の直下に次のカードを挿入する（タブでインデント）:
+6. `## 🟢 対応中` の直下にカードを挿入:
 
 ```markdown
 - **{project} / {task}**
 	- **path:** {absolute-path}
 	- **branch:** (n/a) <!-- auto -->
 	- → [[projects/{project}]]
+	<!-- session: {session-id} -->
 ```
 
-6. ファイルを保存。次回 updater 実行（最大 180 秒）で auto フィールドが埋まる旨をユーザに伝える。
+7. ユーザに完了を通知。
 
-## 操作 D: 完了アーカイブ
+---
 
-トリガ: 「この作業完了」「アーカイブして」
+## /panorama update
 
-手順:
+1. `pwd` で Dashboard.md から該当カードを特定（`path:` フィールドで突合）。見つからなければユーザに通知して終了。
 
-1. 対象カードを特定（`pwd` で突合。見つからなければユーザに確認）
-2. カード全体のテキストを `$VAULT/projects/{project}.md` の `## 履歴` セクションに、見出し `### YYYY-MM-DD {task}` を添えて追記（projects ノートが存在しない場合は先に操作 E を実行）
-3. Dashboard.md から該当カード（`- **title**` から次の `- **` または `##` の手前まで）を削除
-4. 変更内容をユーザに要約
+2. 会話履歴からタスク名を再提案し、ユーザー確認後にカードのタイトル行を更新。
 
-## 操作 E: projects/ ノート作成
+3. セッションIDを取得し、カード内の `<!-- session: ... -->` を現在のセッションIDに更新。存在しなければ追加。
 
-トリガ: 「プロジェクトノート作って」
+4. tmux 配下の場合、ウィンドウ名を新タスク名に更新:
 
-手順:
+```bash
+tmux rename-window "{task}"
+```
 
-1. プロジェクト名を引数で受け取る（無ければカレントディレクトリの basename）
-2. `$VAULT/projects/{name}.md` が既に存在するなら上書きしない
-3. 存在しない場合は以下のテンプレートで作成:
+5. コンテキスト使用量を確認。ステータスバーの使用率が 70% 以上なら `/compact` を実行。
+
+---
+
+## /panorama done
+
+1. `pwd` で Dashboard.md から該当カードを特定（`path:` フィールドで突合）。見つからなければユーザに通知して終了。
+
+2. カードからプロジェクト名とタスク名を抽出（タイトル行 `**{project} / {task}**` をパース）。
+
+3. `$VAULT/projects/{project}.md` が存在しなければ作成:
 
 ```markdown
-# {name}
+# {project}
 
 ## 概要
 
@@ -94,8 +113,74 @@ tmux rename-window "{task}"
 
 ```
 
+4. `## 履歴` セクションに追記:
+
+```markdown
+### YYYY-MM-DD {task}
+
+- session: {session-id}
+- branch: {branch}
+- path: {path}
+```
+
+5. Dashboard.md からカードを削除（カード開始行から次の `- **` または `##` の手前まで。`<!-- session: ... -->` 行も含む）。
+
+6. ユーザに完了を通知。
+
+---
+
+## /panorama block
+
+1. `pwd` で Dashboard.md から該当カードを特定。見つからなければユーザに通知して終了。
+
+2. カードのテキストブロックを現在の列から切り取り、🔴 で始まる列の直下に挿入する（Edit ツールで実行）。
+
+3. tmux ウィンドウ名を変更:
+
+```bash
+tmux rename-window "[BLOCK] {task}"
+```
+
+4. カード内の `<!-- session: {id} -->` を `<!-- session: {id} | blocked -->` に更新。
+
+5. ユーザに通知。
+
+---
+
+## /panorama unblock
+
+1. `pwd` で Dashboard.md からブロック中のカードを特定（🔴 列を検索）。見つからなければユーザに通知して終了。
+
+2. カードのテキストブロックを 🔴 列から切り取り、`## 🟢 対応中` の直下に挿入する。
+
+3. tmux ウィンドウ名から `[BLOCK] ` を除去:
+
+```bash
+CURRENT=$(tmux display-message -p '#W')
+tmux rename-window "${CURRENT#\[BLOCK\] }"
+```
+
+4. カード内の `<!-- session: {id} | blocked -->` から `| blocked` を除去。
+
+5. セッションIDを現在のセッションに更新。
+
+6. ユーザに通知。
+
+---
+
+## プロジェクトノート作成
+
+`/panorama done` で projects ノートが必要になった場合に自動実行。手動トリガ: 「プロジェクトノート作って」
+
+1. プロジェクト名を引数で受け取る（無ければカレントディレクトリの basename）
+2. `$VAULT/projects/{name}.md` が既に存在するなら上書きしない
+3. 存在しない場合はテンプレートで作成
+
+---
+
 ## 禁止事項
 
-- auto マーカー付き行 (`<!-- auto -->`) の値を書き換えない
-- Kanban の列見出し (`## 🟢 対応中` 等) を編集・移動しない
-- updater が動いていなくてもスキル操作は完結する（auto フィールドは次回 updater で埋まる）
+- `<!-- auto -->` マーカー付き行の値を手で書き換えない
+- Kanban の列見出しを編集・移動しない
+- updater が動いていなくてもスキル操作は完結する
+- `<!-- session: ... -->` はスキルのみが管理する
