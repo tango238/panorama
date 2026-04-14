@@ -133,12 +133,13 @@ tmux rename-window "{task}"
 
 1. `pwd` で Dashboard.md から該当カードを特定。見つからなければユーザに通知して終了。
 
-2. カードのテキストブロックを現在の列から切り取り、🔴 で始まる列の直下に挿入する（Edit ツールで実行）。
+2. カードのテキストブロック（タイトル・フィールド・セッションコメント全て）を現在の列から切り取り、🔴 で始まる列の直下に挿入する。カードのタイトルは変更しない。
 
-3. tmux ウィンドウ名を変更:
+3. tmux ウィンドウ名の先頭に `[BLOCK] ` を追加（元のウィンドウ名はそのまま残す）:
 
 ```bash
-tmux rename-window "[BLOCK] {task}"
+CURRENT=$(tmux display-message -p '#W')
+tmux rename-window "[BLOCK] $CURRENT"
 ```
 
 4. カード内の `<!-- session: {id} -->` を `<!-- session: {id} | blocked -->` に更新。
