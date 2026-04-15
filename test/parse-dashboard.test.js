@@ -24,8 +24,6 @@ kanban-plugin: board
 \t- **last-activity:** 30m ago <!-- auto -->
 \t- → [[projects/project-a]]
 
-## 🟠 許可待ち
-
 ## 🟡 入力待ち
 
 - **project-b / task-2**
@@ -113,10 +111,9 @@ describe('findColumns', () => {
   it('finds all column headings', () => {
     const lines = DASHBOARD.split(/\r?\n/);
     const columns = findColumns(lines);
-    assert.equal(columns.length, 5);
+    assert.equal(columns.length, 4);
     assert.ok(columns[0].heading.includes('🟢'));
-    assert.ok(columns[1].heading.includes('🟠'));
-    assert.ok(columns[2].heading.includes('🟡'));
+    assert.ok(columns[1].heading.includes('🟡'));
   });
 });
 
@@ -141,8 +138,8 @@ describe('moveCard', () => {
 
     // card-a should no longer be under 🟢
     const activeIdx = result.findIndex(l => l.includes('🟢'));
-    const permIdx = result.findIndex(l => l.includes('🟠'));
-    const between = result.slice(activeIdx + 1, permIdx);
+    const waitingIdx = result.findIndex(l => l.includes('🟡'));
+    const between = result.slice(activeIdx + 1, waitingIdx);
     assert.ok(!between.some(l => l.includes('project-a')));
 
     // card-a should be under 🟡

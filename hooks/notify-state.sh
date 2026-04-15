@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # panorama hook: write Claude Code state to a file for the updater to read.
 # Usage: notify-state.sh <state>
-#   state: active | permission
+#   state: active
 #
 # Called from Claude Code hooks (PreToolUse / PostToolUse).
 # The updater reads these files to determine card column transitions.

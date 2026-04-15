@@ -50,7 +50,7 @@ PROJECT_DIR="$HOME/.claude/projects/$(pwd | sed 's|/|-|g; s|^-||')"
 SESSION_ID=$(ls -t "$PROJECT_DIR"/*.jsonl 2>/dev/null | head -1 | xargs basename | sed 's/\.jsonl$//')
 ```
 
-3. `$VAULT/Dashboard.md` を読み、現在のセッションID と一致する `<!-- session: {id} -->` を持つカードを 🟢/🟠/🟡 から検索。見つかれば `/panorama done` と同じ手順で自動完了する。セッションIDで見つからない場合は、同じ `path` のカードをフォールバック検索する。
+3. `$VAULT/Dashboard.md` を読み、現在のセッションID と一致する `<!-- session: {id} -->` を持つカードを 🟢/🟡 から検索。見つかれば `/panorama done` と同じ手順で自動完了する。セッションIDで見つからない場合は、同じ `path` のカードをフォールバック検索する。
 
 4. タスク名を決定。引数があればそのまま使用。なければ会話履歴から提案して確認。
 

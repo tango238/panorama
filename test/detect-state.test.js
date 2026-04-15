@@ -53,20 +53,4 @@ describe('detectClaudeCodeState (hook-based)', () => {
     assert.equal(detectClaudeCodeState(hookState, 30), 'waiting');
   });
 
-  // --- permission states ---
-
-  it('detects recent permission hook as permission', () => {
-    const hookState = { state: 'permission', timestamp: nowEpoch() };
-    assert.equal(detectClaudeCodeState(hookState), 'permission');
-  });
-
-  it('detects permission hook 60s ago as permission', () => {
-    const hookState = { state: 'permission', timestamp: nowEpoch() - 60 };
-    assert.equal(detectClaudeCodeState(hookState), 'permission');
-  });
-
-  it('detects permission hook 91s ago as waiting (stale)', () => {
-    const hookState = { state: 'permission', timestamp: nowEpoch() - 91 };
-    assert.equal(detectClaudeCodeState(hookState), 'waiting');
-  });
 });

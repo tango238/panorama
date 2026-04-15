@@ -5,7 +5,7 @@ import { splitCards, extractCardFields, rewriteAutoField, findColumns, getCardCo
 import { getBranch, getLastCommit } from './lib/git.js';
 import { getLastActivity } from './lib/fs-activity.js';
 import { formatRelative } from './lib/relative-time.js';
-import { listPanes, parseTmuxField, readHookState, detectClaudeCodeState, detectPermissionFromPane } from './lib/tmux.js';
+import { listPanes, readHookState, detectClaudeCodeState } from './lib/tmux.js';
 
 const AUTO_KEYS = ['branch', 'last-commit', 'last-activity'];
 
@@ -42,13 +42,11 @@ function applyUpdatesToLines(lines, card, updates) {
 }
 
 const COL_ACTIVE = '## 🟢 対応中';
-const COL_PERMISSION = '## 🟠 許可待ち';
 const COL_WAITING = '## 🟡 入力待ち';
-const AUTO_COLUMNS = [COL_ACTIVE, COL_PERMISSION, COL_WAITING];
+const AUTO_COLUMNS = [COL_ACTIVE, COL_WAITING];
 
 function targetColumnFor(state) {
   if (state === 'active') return COL_ACTIVE;
-  if (state === 'permission') return COL_PERMISSION;
   if (state === 'waiting') return COL_WAITING;
   return null;
 }
@@ -67,37 +65,8 @@ function buildColumnTransitions(cards, columns, panes, idleThreshold) {
     if (!fields.path) continue;
 
     const hookState = readHookState(fields.path);
-    let state = detectClaudeCodeState(hookState, idleThreshold);
+    const state = detectClaudeCodeState(hookState, idleThreshold);
     if (state === null) continue;
-
-    // Fallback: check tmux pane for permission prompt when state is waiting
-    if (state === 'waiting' && fields.tmux) {
-      const tmuxInfo = parseTmuxField(fields.tmux);
-      if (tmuxInfo) {
-        const target = `${tmuxInfo.session}:${tmuxInfo.windowIndex}.${tmuxInfo.paneIndex}`;
-        if (detectPermissionFromPane(target)) {
-          state = 'permission';
-        }
-      }
-    }
-    // Also check by session name + pane for cards without tmux field
-    if (state === 'waiting' && !fields.tmux && panes) {
-      for (const p of panes) {
-        if (detectPermissionFromPane(`${p.session}:${p.windowIndex}.${p.paneIndex}`)) {
-          // Verify this pane's cwd matches card path
-          try {
-            const paneCwd = execFileSync('tmux', ['display-message', '-p', '-t',
-              `${p.session}:${p.windowIndex}.${p.paneIndex}`, '#{pane_current_path}'], {
-              encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'],
-            }).trim();
-            if (paneCwd === fields.path) {
-              state = 'permission';
-              break;
-            }
-          } catch { /* skip */ }
-        }
-      }
-    }
 
     const destCol = targetColumnFor(state);
     if (!destCol) continue;
