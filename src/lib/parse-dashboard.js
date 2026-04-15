@@ -37,6 +37,7 @@ export function splitCards(text) {
 }
 
 const FIELD_LINE = /^\s*-\s+\*\*([a-z-]+):\*\*\s+(.*?)(\s+<!--\s*auto\s*-->)?\s*$/;
+const SESSION_COMMENT = /<!--\s*session:\s*([0-9a-f-]+)\s*(\|\s*blocked\s*)?-->/;
 
 export function extractCardFields(body) {
   const result = {};
@@ -44,6 +45,11 @@ export function extractCardFields(body) {
     const m = line.match(FIELD_LINE);
     if (m) {
       result[m[1]] = m[2];
+    }
+    const s = line.match(SESSION_COMMENT);
+    if (s) {
+      result.session = s[1];
+      if (s[2]) result.blocked = true;
     }
   }
   return result;

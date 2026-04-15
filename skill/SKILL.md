@@ -50,7 +50,7 @@ PROJECT_DIR="$HOME/.claude/projects/$(pwd | sed 's|/|-|g; s|^-||')"
 SESSION_ID=$(ls -t "$PROJECT_DIR"/*.jsonl 2>/dev/null | head -1 | xargs basename | sed 's/\.jsonl$//')
 ```
 
-3. `$VAULT/Dashboard.md` を読み、同じ `path` のカードを 🟢/🟠/🟡 から検索。見つかれば `/panorama done` と同じ手順で自動完了する。
+3. `$VAULT/Dashboard.md` を読み、現在のセッションID と一致する `<!-- session: {id} -->` を持つカードを 🟢/🟠/🟡 から検索。見つかれば `/panorama done` と同じ手順で自動完了する。セッションIDで見つからない場合は、同じ `path` のカードをフォールバック検索する。
 
 4. タスク名を決定。引数があればそのまま使用。なければ会話履歴から提案して確認。
 
@@ -76,11 +76,11 @@ tmux rename-window "{task}"
 
 ## /panorama update
 
-1. `pwd` で Dashboard.md から該当カードを特定（`path:` フィールドで突合）。見つからなければユーザに通知して終了。
+1. セッションIDを取得し、Dashboard.md から `<!-- session: {id} -->` が一致するカードを特定。見つからなければ `pwd` の `path:` フィールドでフォールバック検索。それでも見つからなければユーザに通知して終了。
 
 2. 会話履歴からタスク名を再提案し、ユーザー確認後にカードのタイトル行を更新。
 
-3. セッションIDを取得し、カード内の `<!-- session: ... -->` を現在のセッションIDに更新。存在しなければ追加。
+3. カード内の `<!-- session: ... -->` を現在のセッションIDに更新。存在しなければ追加。
 
 4. tmux 配下の場合、ウィンドウ名を新タスク名に更新:
 
@@ -94,7 +94,7 @@ tmux rename-window "{task}"
 
 ## /panorama done
 
-1. `pwd` で Dashboard.md から該当カードを特定（`path:` フィールドで突合）。見つからなければユーザに通知して終了。
+1. セッションIDで Dashboard.md から該当カードを特定（`<!-- session: {id} -->` で突合）。見つからなければ `pwd` の `path:` フィールドでフォールバック検索。見つからなければユーザに通知して終了。
 
 2. カードからプロジェクト名とタスク名を抽出（タイトル行 `**{project} / {task}**` をパース）。
 
@@ -131,7 +131,7 @@ tmux rename-window "{task}"
 
 ## /panorama block
 
-1. `pwd` で Dashboard.md から該当カードを特定。見つからなければユーザに通知して終了。
+1. セッションIDで Dashboard.md から該当カードを特定（`<!-- session: {id} -->` で突合）。見つからなければ `pwd` の `path:` フィールドでフォールバック検索。見つからなければユーザに通知して終了。
 
 2. カードのテキストブロック（タイトル・フィールド・セッションコメント全て）を現在の列から切り取り、🔴 で始まる列の直下に挿入する。カードのタイトルは変更しない。
 
@@ -150,7 +150,7 @@ tmux rename-window "[BLOCK] $CURRENT"
 
 ## /panorama unblock
 
-1. `pwd` で Dashboard.md からブロック中のカードを特定（🔴 列を検索）。見つからなければユーザに通知して終了。
+1. セッションIDで Dashboard.md からブロック中のカードを特定（🔴 列の `<!-- session: {id} | blocked -->` で突合）。見つからなければ `pwd` の `path:` フィールドで🔴列をフォールバック検索。見つからなければユーザに通知して終了。
 
 2. カードのテキストブロックを 🔴 列から切り取り、`## 🟢 対応中` の直下に挿入する。
 
