@@ -45,7 +45,6 @@ kanban-plugin: basic
   runUpdate({ vault_path: vault, dashboard_file: 'Dashboard.md' });
 
   const after = readFileSync(dashboardPath, 'utf8');
-  assert.match(after, /\*\*branch:\*\* feature\/login <!-- auto -->/);
   assert.match(after, /\*\*last-commit:\*\* .+ · initial <!-- auto -->/);
   assert.match(after, /\*\*last-activity:\*\* .+ <!-- auto -->/);
   assert.match(after, /\*\*alive:\*\* \(tmux外\) <!-- auto -->/);
@@ -69,7 +68,6 @@ test('runUpdate: non-existent path gets (n/a)', () => {
   runUpdate({ vault_path: vault, dashboard_file: 'Dashboard.md' });
 
   const after = readFileSync(dashboardPath, 'utf8');
-  assert.match(after, /- \*\*branch:\*\* \(n\/a\) <!-- auto -->/);
   assert.match(after, /- \*\*last-commit:\*\* \(n\/a\) <!-- auto -->/);
   assert.match(after, /- \*\*last-activity:\*\* \(n\/a\) <!-- auto -->/);
 });

@@ -65,7 +65,6 @@ tmux rename-window "{task}"
 ```markdown
 - **{project} / {task}**
 	- **path:** {absolute-path}
-	- **branch:** (n/a) <!-- auto -->
 	- → [[projects/{project}]]
 	<!-- session: {session-id} -->
 ```

@@ -2,25 +2,22 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { splitCards, extractCardFields, rewriteAutoField, findColumns, getCardColumn, moveCard } from './lib/parse-dashboard.js';
-import { getBranch, getLastCommit } from './lib/git.js';
+import { getLastCommit } from './lib/git.js';
 import { getLastActivity } from './lib/fs-activity.js';
 import { formatRelative } from './lib/relative-time.js';
 import { listPanes, readHookState, detectClaudeCodeState } from './lib/tmux.js';
 
-const AUTO_KEYS = ['branch', 'last-commit', 'last-activity'];
+const AUTO_KEYS = ['last-commit', 'last-activity'];
 
 function buildCardUpdates(card) {
   const fields = extractCardFields(card.body);
   const updates = {
-    branch: '(n/a)',
     'last-commit': '(n/a)',
     'last-activity': '(n/a)',
   };
 
   if (fields.path) {
     try {
-      const branch = getBranch(fields.path);
-      if (branch !== null) updates.branch = branch;
       const commit = getLastCommit(fields.path);
       if (commit !== null) updates['last-commit'] = commit;
       const activity = getLastActivity(fields.path);

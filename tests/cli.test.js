@@ -17,7 +17,7 @@ test('pano update: reads config and updates dashboard', () => {
   execFileSync('node', [CLI, 'update', '--config', cfgPath], { stdio: 'pipe' });
 
   const after = readFileSync(dashboardPath, 'utf8');
-  assert.match(after, /- \*\*branch:\*\* \(n\/a\) <!-- auto -->/);
+  assert.match(after, /- \*\*last-commit:\*\* \(n\/a\) <!-- auto -->/);
 });
 
 test('pano doctor: exits 0 when node and git exist', () => {
