@@ -94,6 +94,8 @@ tmux rename-window "{task}"
 
 ## /panorama done
 
+**重要: ステップ2〜4のアーカイブは必須。スキップ禁止。カード削除（ステップ5）はアーカイブ完了後にのみ実行すること。**
+
 1. セッションIDで Dashboard.md から該当カードを特定（`<!-- session: {id} -->` で突合）。見つからなければ `pwd` の `path:` フィールドでフォールバック検索。見つからなければユーザに通知して終了。
 
 2. カードからプロジェクト名とタスク名を抽出（タイトル行 `**{project} / {task}**` をパース）。
@@ -113,7 +115,7 @@ tmux rename-window "{task}"
 
 ```
 
-4. `## 履歴` セクションに追記:
+4. `$VAULT/projects/{project}.md` の `## 履歴` セクションに追記:
 
 ```markdown
 ### YYYY-MM-DD {task}
@@ -123,9 +125,19 @@ tmux rename-window "{task}"
 - path: {path}
 ```
 
-5. Dashboard.md からカードを削除（カード開始行から次の `- **` または `##` の手前まで。`<!-- session: ... -->` 行も含む）。
+5. アーカイブ完了を確認した上で、Dashboard.md からカードを削除（カード開始行から次の `- **` または `##` の手前まで。`<!-- session: ... -->` 行も含む）。
 
-6. ユーザに完了を通知。
+6. ユーザに以下の形式で完了を通知:
+
+```
+panorama done 完了
+- タスク: {project} / {task}
+- 履歴: projects/{project}.md に追記済み
+- セッション: {session-id}
+- Dashboard からカード削除済み
+```
+
+7. `/clear` を実行してコンテキストをリセットする。
 
 ---
 
