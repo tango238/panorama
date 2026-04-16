@@ -1,23 +1,42 @@
 #!/usr/bin/env bash
-# panorama hook: write Claude Code state to a file for the updater to read.
-# Usage: notify-state.sh <state>
-#   state: active
-#
-# Called from Claude Code hooks (PreToolUse / PostToolUse).
-# The updater reads these files to determine card column transitions.
-# State files are keyed by the working directory path (matching card's path field).
-
-set -euo pipefail
+# panorama state hook (fail-open, atomic write)
+# Usage: notify-state.sh <active|waiting>
+# Reads Claude Code hook JSON from stdin with session_id, cwd fields.
 
 STATE="${1:-active}"
 STATE_DIR="$HOME/.config/panorama/states"
-mkdir -p "$STATE_DIR"
+mkdir -p "$STATE_DIR" 2>/dev/null || exit 0
 
-# Key by working directory path (sanitized for filename)
-PATH_KEY=$(pwd | sed 's|/|_|g')
-STATE_FILE="$STATE_DIR/${PATH_KEY}.json"
+# jq 不在ならフェイルオープン
+command -v jq >/dev/null 2>&1 || exit 0
 
-# Write state with epoch timestamp
-cat > "$STATE_FILE" <<EOF
-{"state":"${STATE}","timestamp":$(date +%s)}
-EOF
+INPUT=$(cat 2>/dev/null || echo '{}')
+SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty' 2>/dev/null || echo "")
+CWD=$(echo "$INPUT" | jq -r '.cwd // empty' 2>/dev/null || echo "")
+
+[ -z "$SESSION_ID" ] && exit 0
+
+case "$STATE" in
+  active|waiting) ;;
+  *) exit 0 ;;
+esac
+
+# session_id はファイル名として安全か（英数 + ハイフンのみ）
+case "$SESSION_ID" in
+  *[!a-zA-Z0-9-]*) exit 0 ;;
+esac
+
+STATE_FILE="$STATE_DIR/${SESSION_ID}.json"
+TEMP_FILE=$(mktemp "$STATE_DIR/.tmp-XXXXXX" 2>/dev/null) || exit 0
+
+TS=$(date +%s)
+jq -n \
+  --arg state "$STATE" \
+  --argjson timestamp "$TS" \
+  --arg session_id "$SESSION_ID" \
+  --arg cwd "$CWD" \
+  '{state: $state, timestamp: $timestamp, session_id: $session_id, cwd: $cwd}' \
+  > "$TEMP_FILE" 2>/dev/null || { rm -f "$TEMP_FILE"; exit 0; }
+
+mv -f "$TEMP_FILE" "$STATE_FILE" 2>/dev/null || rm -f "$TEMP_FILE"
+exit 0
