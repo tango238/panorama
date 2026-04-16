@@ -87,6 +87,28 @@ export function loadAllHookStates(homeDir = homedir()) {
   return { bySession, byCwd };
 }
 
+const CARD_SESSION_RE = /<!--\s*session:\s*([a-zA-Z0-9-]+)\s*(?:\|\s*blocked\s*)?-->/;
+const CARD_PATH_RE = /\*\*path:\*\*\s+(.+)/;
+
+export function resolveCardState(card, indices) {
+  const body = card.body || '';
+
+  const sessionMatch = body.match(CARD_SESSION_RE);
+  if (sessionMatch) {
+    const found = indices.bySession.get(sessionMatch[1]);
+    if (found) return found;
+  }
+
+  const pathMatch = body.match(CARD_PATH_RE);
+  if (pathMatch) {
+    const cwd = pathMatch[1].trim();
+    const arr = indices.byCwd.get(cwd);
+    if (arr && arr.length > 0) return arr[0];
+  }
+
+  return null;
+}
+
 export function detectClaudeCodeState(hookState, staleThreshold = STALE_THRESHOLD_SEC) {
   if (hookState === null || typeof hookState !== 'object') return null;
   if (!VALID_STATES.has(hookState.state)) return null;

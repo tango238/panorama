@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { loadAllHookStates } from '../src/lib/tmux.js';
+import { loadAllHookStates, resolveCardState } from '../src/lib/tmux.js';
 
 function makeStateDir() {
   const home = mkdtempSync(join(tmpdir(), 'panorama-states-'));
@@ -71,5 +71,49 @@ describe('loadAllHookStates', () => {
     writeFileSync(join(dir, 'nosess.json'), JSON.stringify({ state: 'active', timestamp: 1, cwd: '/x' }));
     const { bySession } = loadAllHookStates(home);
     assert.equal(bySession.size, 0);
+  });
+});
+
+describe('resolveCardState', () => {
+  const state1 = { state: 'active', timestamp: 100, session_id: 'sess-1', cwd: '/repo-a' };
+  const state2 = { state: 'waiting', timestamp: 200, session_id: 'sess-2', cwd: '/repo-a' };
+  const state3 = { state: 'active', timestamp: 150, session_id: 'sess-3', cwd: '/repo-b' };
+
+  const indices = {
+    bySession: new Map([['sess-1', state1], ['sess-2', state2], ['sess-3', state3]]),
+    byCwd: new Map([
+      ['/repo-a', [state2, state1]],
+      ['/repo-b', [state3]],
+    ]),
+  };
+
+  it('matches by session_id embedded in card body', () => {
+    const card = { body: '- **title**\n\t<!-- session: sess-2 -->' };
+    assert.equal(resolveCardState(card, indices), state2);
+  });
+
+  it('falls back to cwd match when session not in card', () => {
+    const card = { body: '- **title**\n\t- **path:** /repo-b' };
+    assert.equal(resolveCardState(card, indices), state3);
+  });
+
+  it('cwd fallback returns newest when multiple sessions share cwd', () => {
+    const card = { body: '- **title**\n\t- **path:** /repo-a' };
+    assert.equal(resolveCardState(card, indices), state2);
+  });
+
+  it('returns null when neither matches', () => {
+    const card = { body: '- **title**\n\t- **path:** /unknown' };
+    assert.equal(resolveCardState(card, indices), null);
+  });
+
+  it('session_id takes priority over cwd', () => {
+    const card = { body: '- **title**\n\t- **path:** /repo-a\n\t<!-- session: sess-3 -->' };
+    assert.equal(resolveCardState(card, indices), state3);
+  });
+
+  it('handles blocked session marker <!-- session: X | blocked -->', () => {
+    const card = { body: '- **title**\n\t<!-- session: sess-1 | blocked -->' };
+    assert.equal(resolveCardState(card, indices), state1);
   });
 });
