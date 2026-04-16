@@ -48,6 +48,45 @@ export function listPanes() {
 const STALE_THRESHOLD_SEC = 3600; // 1h
 const VALID_STATES = new Set(['active', 'waiting']);
 
+export function loadAllHookStates(homeDir = homedir()) {
+  const stateDir = join(homeDir, '.config/panorama/states');
+  const bySession = new Map();
+  const byCwd = new Map();
+
+  let files;
+  try {
+    files = readdirSync(stateDir);
+  } catch {
+    return { bySession, byCwd };
+  }
+
+  const entries = [];
+  for (const f of files) {
+    if (!f.endsWith('.json') || f.startsWith('.')) continue;
+    try {
+      const raw = readFileSync(join(stateDir, f), 'utf8');
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') continue;
+      if (typeof parsed.session_id !== 'string' || parsed.session_id.length === 0) continue;
+      entries.push(parsed);
+    } catch { /* skip unreadable/malformed */ }
+  }
+
+  for (const e of entries) {
+    bySession.set(e.session_id, e);
+    if (typeof e.cwd === 'string' && e.cwd.length > 0) {
+      if (!byCwd.has(e.cwd)) byCwd.set(e.cwd, []);
+      byCwd.get(e.cwd).push(e);
+    }
+  }
+
+  for (const arr of byCwd.values()) {
+    arr.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+  }
+
+  return { bySession, byCwd };
+}
+
 export function detectClaudeCodeState(hookState, staleThreshold = STALE_THRESHOLD_SEC) {
   if (hookState === null || typeof hookState !== 'object') return null;
   if (!VALID_STATES.has(hookState.state)) return null;
