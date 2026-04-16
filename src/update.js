@@ -1,11 +1,10 @@
 import { readFileSync, writeFileSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { splitCards, extractCardFields, rewriteAutoField, findColumns, getCardColumn, moveCard } from './lib/parse-dashboard.js';
 import { getLastCommit } from './lib/git.js';
 import { getLastActivity } from './lib/fs-activity.js';
 import { formatRelative } from './lib/relative-time.js';
-import { listPanes, readHookState, detectClaudeCodeState } from './lib/tmux.js';
+import { loadAllHookStates, resolveCardState, detectClaudeCodeState } from './lib/tmux.js';
 
 const AUTO_KEYS = ['last-commit', 'last-activity'];
 
@@ -48,10 +47,9 @@ function targetColumnFor(state) {
   return null;
 }
 
-function buildColumnTransitions(cards, columns, panes, idleThreshold) {
+function buildColumnTransitions(cards, columns, indices) {
   const moves = [];
   for (const card of cards) {
-    const fields = extractCardFields(card.body);
     const currentCol = getCardColumn(card, columns);
     if (!currentCol) continue;
 
@@ -59,10 +57,8 @@ function buildColumnTransitions(cards, columns, panes, idleThreshold) {
     const inAutoCol = AUTO_COLUMNS.some(c => currentCol.heading.includes(c.slice(3)));
     if (!inAutoCol) continue;
 
-    if (!fields.path) continue;
-
-    const hookState = readHookState(fields.path);
-    const state = detectClaudeCodeState(hookState, idleThreshold);
+    const hookState = resolveCardState(card, indices);
+    const state = detectClaudeCodeState(hookState);
     if (state === null) continue;
 
     const destCol = targetColumnFor(state);
@@ -81,7 +77,6 @@ export function runUpdate(config) {
   const text = readFileSync(dashboardPath, 'utf8');
   let lines = text.split(/\r?\n/);
   const cards = splitCards(text);
-  const panes = listPanes();
 
   // Phase 1: auto field updates
   for (const card of cards) {
@@ -90,13 +85,12 @@ export function runUpdate(config) {
   }
 
   // Phase 2: column transitions — one move at a time with fresh line numbers
-  const interval = config.update_interval_seconds || 180;
-  const idleThreshold = Math.ceil(interval * 1.5);
+  const indices = loadAllHookStates();
   const MAX_MOVES = 10;
   for (let i = 0; i < MAX_MOVES; i++) {
     const currentCards = splitCards(lines.join('\n'));
     const currentColumns = findColumns(lines);
-    const moves = buildColumnTransitions(currentCards, currentColumns, panes, idleThreshold);
+    const moves = buildColumnTransitions(currentCards, currentColumns, indices);
     if (moves.length === 0) break;
     lines = moveCard(lines, moves[0].card, moves[0].targetHeading);
   }
