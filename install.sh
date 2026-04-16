@@ -14,7 +14,7 @@ echo "panorama installer"
 echo "  REPO_DIR: $REPO_DIR"
 
 # 1. 依存チェック
-for bin in node git tmux launchctl; do
+for bin in node git tmux launchctl jq; do
   if ! command -v "$bin" >/dev/null 2>&1; then
     echo "ERROR: $bin is required but not installed" >&2
     exit 1
@@ -24,6 +24,23 @@ NODE_BIN="$(command -v node)"
 
 # 2. config 初期化
 mkdir -p "$CONFIG_DIR" "$CONFIG_DIR/states"
+
+# 2.5. hooks ディレクトリを ~/.local/share/panorama/hooks/ にコピー
+HOOKS_DEST="$HOME/.local/share/panorama/hooks"
+mkdir -p "$HOOKS_DEST"
+cp -f "$REPO_DIR/hooks/notify-state.sh" "$HOOKS_DEST/notify-state.sh"
+chmod +x "$HOOKS_DEST/notify-state.sh"
+echo "Installed hook to $HOOKS_DEST/notify-state.sh"
+
+# 2.6. 旧 state ファイル（path ベース）をクリーンアップ
+STATE_DIR="$CONFIG_DIR/states"
+for f in "$STATE_DIR"/*.json; do
+  [ -f "$f" ] || continue
+  if ! jq -e '.session_id' "$f" >/dev/null 2>&1; then
+    rm -f "$f"
+    echo "Removed legacy state file: $(basename "$f")"
+  fi
+done
 if [ ! -f "$CONFIG_FILE" ]; then
   cp "$REPO_DIR/config.example.yaml" "$CONFIG_FILE"
   echo "Created $CONFIG_FILE"
@@ -68,27 +85,54 @@ echo "Loaded launchd plist $LAUNCHD_PLIST"
 
 # 7. Claude Code hook 登録
 SETTINGS_FILE="$HOME/.claude/settings.json"
-HOOK_CMD="$REPO_DIR/hooks/notify-state.sh active"
-if [ -f "$SETTINGS_FILE" ]; then
-  if ! grep -q "notify-state.sh" "$SETTINGS_FILE" 2>/dev/null; then
-    # jq があれば自動登録、なければ手動案内
-    if command -v jq >/dev/null 2>&1; then
-      HOOK_ENTRY='{"hooks":[{"type":"command","command":"'"$HOOK_CMD"'"}]}'
-      TMP_SETTINGS=$(mktemp)
-      jq --argjson hook "$HOOK_ENTRY" '
-        .hooks.PreToolUse = ((.hooks.PreToolUse // []) + [$hook])
-      ' "$SETTINGS_FILE" > "$TMP_SETTINGS" && mv "$TMP_SETTINGS" "$SETTINGS_FILE"
-      echo "Registered PreToolUse hook in $SETTINGS_FILE"
-    else
-      echo "NOTE: Add this hook to $SETTINGS_FILE manually:"
-      echo "  PreToolUse -> $HOOK_CMD"
-    fi
-  else
-    echo "Hook already registered in $SETTINGS_FILE"
+HOOK_CMD_ACTIVE="$HOOKS_DEST/notify-state.sh active"
+HOOK_CMD_WAITING="$HOOKS_DEST/notify-state.sh waiting"
+
+ensure_hook() {
+  local event="$1"
+  local cmd="$2"
+  local settings="$3"
+
+  # 既に同 command が event 配下に登録されていればスキップ
+  local existing
+  existing=$(jq -r --arg evt "$event" --arg cmd "$cmd" \
+    '(.hooks[$evt] // [])
+     | map(.hooks // [] | map(.command))
+     | flatten
+     | map(select(. == $cmd))
+     | length' "$settings" 2>/dev/null || echo "0")
+  if [ "$existing" != "0" ]; then
+    echo "  $event hook already registered"
+    return 0
   fi
+
+  local tmp
+  tmp=$(mktemp)
+  jq --arg evt "$event" --arg cmd "$cmd" \
+    '.hooks[$evt] = ((.hooks[$evt] // []) + [{"hooks":[{"type":"command","command":$cmd}]}])' \
+    "$settings" > "$tmp" && mv "$tmp" "$settings"
+  echo "  Registered $event hook"
+}
+
+if [ -f "$SETTINGS_FILE" ]; then
+  # 7a. 旧 hook 登録（REPO_DIR 直接パス）をクリーンアップ
+  tmp=$(mktemp)
+  jq --arg old "$REPO_DIR/hooks/notify-state.sh" \
+     '.hooks |= (to_entries | map(
+        .value |= (
+          map(.hooks |= map(select((.command // "") | (startswith($old + " ") | not))))
+          | map(select((.hooks // []) | length > 0))
+        )
+      ) | from_entries)' \
+     "$SETTINGS_FILE" > "$tmp" && mv "$tmp" "$SETTINGS_FILE"
+
+  ensure_hook "UserPromptSubmit" "$HOOK_CMD_ACTIVE"  "$SETTINGS_FILE"
+  ensure_hook "PreToolUse"       "$HOOK_CMD_ACTIVE"  "$SETTINGS_FILE"
+  ensure_hook "PostToolUse"      "$HOOK_CMD_ACTIVE"  "$SETTINGS_FILE"
+  ensure_hook "Stop"             "$HOOK_CMD_WAITING" "$SETTINGS_FILE"
+  ensure_hook "Notification"     "$HOOK_CMD_WAITING" "$SETTINGS_FILE"
 else
-  echo "NOTE: $SETTINGS_FILE not found. Create it and add PreToolUse hook:"
-  echo "  $HOOK_CMD"
+  echo "NOTE: $SETTINGS_FILE not found. Skipping hook registration."
 fi
 
 # 8. 初回 update
