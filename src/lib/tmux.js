@@ -45,47 +45,16 @@ export function listPanes() {
   }
 }
 
-const STATE_DIR = join(homedir(), '.config/panorama/states');
-const DEFAULT_IDLE_THRESHOLD_SEC = 90;
+const STALE_THRESHOLD_SEC = 3600; // 1h
+const VALID_STATES = new Set(['active', 'waiting']);
 
-export function readHookState(cardPath) {
-  const pathKey = cardPath.replace(/\//g, '_');
-  let best = null;
-
-  // Check direct state file
-  try {
-    const raw = readFileSync(join(STATE_DIR, `${pathKey}.json`), 'utf8');
-    best = JSON.parse(raw);
-  } catch { /* no direct file */ }
-
-  // Check worktree state files (path/.worktrees/*) and pick newest
-  try {
-    const prefix = `${pathKey}_.worktrees_`;
-    const files = readdirSync(STATE_DIR)
-      .filter(f => f.startsWith(prefix) && f.endsWith('.json'));
-    for (const f of files) {
-      try {
-        const raw = readFileSync(join(STATE_DIR, f), 'utf8');
-        const parsed = JSON.parse(raw);
-        if (!best || parsed.timestamp > best.timestamp) {
-          best = parsed;
-        }
-      } catch { /* skip */ }
-    }
-  } catch { /* no worktree files */ }
-
-  return best;
-}
-
-export function detectClaudeCodeState(hookState, idleThreshold = DEFAULT_IDLE_THRESHOLD_SEC) {
-  if (hookState === null) return null;
-
+export function detectClaudeCodeState(hookState, staleThreshold = STALE_THRESHOLD_SEC) {
+  if (hookState === null || typeof hookState !== 'object') return null;
+  if (!VALID_STATES.has(hookState.state)) return null;
+  if (typeof hookState.timestamp !== 'number') return null;
   const elapsed = Math.floor(Date.now() / 1000) - hookState.timestamp;
-
-  if (elapsed < idleThreshold) {
-    return 'active';
-  }
-  return 'waiting';
+  if (elapsed > staleThreshold) return null;
+  return hookState.state;
 }
 
 
