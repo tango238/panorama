@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -20,10 +20,15 @@ test('pano update: reads config and updates dashboard', () => {
   assert.match(after, /- \*\*last-commit:\*\* \(n\/a\) <!-- auto -->/);
 });
 
-test('pano doctor: exits 0 when node and git exist', () => {
-  const out = execFileSync('node', [CLI, 'doctor'], { encoding: 'utf8' });
+test('pano doctor: reports node/git/jq/hooks checks', () => {
+  // doctor may exit non-zero depending on environment (e.g. missing claude hooks);
+  // we only assert that output contains the expected labels.
+  const r = spawnSync('node', [CLI, 'doctor'], { encoding: 'utf8' });
+  const out = r.stdout;
   assert.match(out, /node:\s+OK/);
   assert.match(out, /git:\s+OK/);
+  assert.match(out, /jq:\s+/);
+  assert.match(out, /hooks:\s+/);
 });
 
 test('pano: unknown subcommand exits non-zero', () => {

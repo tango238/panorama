@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve, join } from 'node:path';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { homedir } from 'node:os';
 import { loadConfig } from '../src/lib/config.js';
@@ -49,6 +49,7 @@ function cmdDoctor() {
     ['node', checkBin('node')],
     ['git', checkBin('git')],
     ['tmux', checkBin('tmux')],
+    ['jq', checkBin('jq')],
   ];
   let allOk = true;
   for (const [name, ok] of checks) {
@@ -56,9 +57,36 @@ function cmdDoctor() {
     if (!ok && name !== 'tmux') allOk = false;
   }
   const cfgPath = defaultConfigPath();
-  console.log(`config: ${existsSync(cfgPath) ? 'OK' : 'MISSING'} (${cfgPath})`);
+  console.log(`config:  ${existsSync(cfgPath) ? 'OK' : 'MISSING'} (${cfgPath})`);
+
+  const hookPath = join(homedir(), '.local/share/panorama/hooks/notify-state.sh');
+  const hookOk = existsSync(hookPath);
+  console.log(`hooks:   ${hookOk ? 'OK' : 'MISSING'} (${hookPath})`);
+  if (!hookOk) allOk = false;
+
   const launchdPlist = join(homedir(), 'Library/LaunchAgents/com.user.panorama.plist');
   console.log(`launchd: ${existsSync(launchdPlist) ? 'OK' : 'MISSING'} (${launchdPlist})`);
+
+  const settingsPath = join(homedir(), '.claude/settings.json');
+  if (existsSync(settingsPath)) {
+    try {
+      const settings = JSON.parse(readFileSync(settingsPath, 'utf8'));
+      const required = ['UserPromptSubmit','PreToolUse','PostToolUse','Stop','Notification'];
+      const missing = required.filter(evt => {
+        const arr = settings.hooks && settings.hooks[evt];
+        if (!Array.isArray(arr)) return true;
+        return !arr.some(g => (g.hooks || []).some(h => (h.command || '').includes('notify-state.sh')));
+      });
+      console.log(`claude hooks: ${missing.length === 0 ? 'OK' : `MISSING (${missing.join(',')})`}`);
+      if (missing.length > 0) allOk = false;
+    } catch {
+      console.log(`claude hooks: UNREADABLE`);
+      allOk = false;
+    }
+  } else {
+    console.log(`claude hooks: SETTINGS MISSING`);
+  }
+
   process.exit(allOk ? 0 : 1);
 }
 
