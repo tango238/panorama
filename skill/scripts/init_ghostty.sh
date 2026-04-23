@@ -28,7 +28,8 @@
 
 set -euo pipefail
 
-if ! osascript -e 'tell application "System Events" to return exists process "Ghostty"' >/dev/null 2>&1; then
+running=$(osascript -e 'tell application "System Events" to return exists process "Ghostty"' 2>/dev/null)
+if [[ "$running" != "true" ]]; then
   echo "error: ghostty is not running. launch it first." >&2
   exit 1
 fi
