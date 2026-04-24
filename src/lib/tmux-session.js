@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 
 export function isTmuxAvailable() {
   try {
@@ -61,4 +61,17 @@ export function renameWindow(session, windowName) {
   execFileSync('tmux', ['rename-window', '-t', `${session}:`, windowName], {
     stdio: ['ignore', 'ignore', 'pipe'],
   });
+}
+
+export function attachOrSwitch(name) {
+  if (isInsideTmux()) {
+    execFileSync('tmux', ['switch-client', '-t', name], {
+      stdio: ['ignore', 'ignore', 'pipe'],
+    });
+    return 0;
+  }
+  const result = spawnSync('tmux', ['attach', '-t', name], {
+    stdio: 'inherit',
+  });
+  return result.status ?? 1;
 }
