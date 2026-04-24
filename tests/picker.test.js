@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { interpretKey, clampIndex } from '../src/lib/picker.js';
+import { interpretKey, clampIndex, pick } from '../src/lib/picker.js';
 
 test('interpretKey: arrow up', () => {
   assert.equal(interpretKey('\x1b[A'), 'up');
@@ -56,4 +56,20 @@ test('clampIndex: too large -> length-1', () => {
 
 test('clampIndex: length 0 -> 0', () => {
   assert.equal(clampIndex(0, 0), 0);
+});
+
+test('pick: throws on non-TTY stdin', async () => {
+  const fakeStdin = { isTTY: false };
+  await assert.rejects(
+    () => pick({ items: ['a', 'b'], header: 'Select', stdin: fakeStdin, stdout: process.stdout }),
+    /not a tty/i
+  );
+});
+
+test('pick: throws on empty items', async () => {
+  const fakeStdin = { isTTY: true };
+  await assert.rejects(
+    () => pick({ items: [], header: 'Select', stdin: fakeStdin, stdout: process.stdout }),
+    /no items/i
+  );
 });
