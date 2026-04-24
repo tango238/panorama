@@ -6,6 +6,8 @@ import { execFileSync } from 'node:child_process';
 import { homedir } from 'node:os';
 import { loadConfig } from '../src/lib/config.js';
 import { runUpdate } from '../src/update.js';
+import { runCreate } from '../src/commands/create.js';
+import { runAttach } from '../src/commands/attach.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const REPO_DIR = resolve(dirname(__filename), '..');
@@ -14,24 +16,18 @@ function defaultConfigPath() {
   return join(homedir(), '.config/panorama/config.yaml');
 }
 
-function parseArgs(argv) {
-  const [subcommand, ...rest] = argv;
-  const opts = {};
-  for (let i = 0; i < rest.length; i++) {
-    if (rest[i] === '--config') {
-      opts.config = rest[++i];
+function cmdUpdate(args) {
+  let configPath = defaultConfigPath();
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--config') {
+      configPath = args[++i];
     }
   }
-  return { subcommand, opts };
-}
-
-function cmdUpdate(opts) {
-  const cfgPath = opts.config || defaultConfigPath();
-  if (!existsSync(cfgPath)) {
-    console.error(`panorama: config not found at ${cfgPath}`);
+  if (!existsSync(configPath)) {
+    console.error(`panorama: config not found at ${configPath}`);
     process.exit(1);
   }
-  const cfg = loadConfig(cfgPath);
+  const cfg = loadConfig(configPath);
   runUpdate(cfg);
 }
 
@@ -91,18 +87,30 @@ function cmdDoctor() {
 }
 
 function usage() {
-  console.error('Usage: panorama <update|doctor> [--config PATH]');
+  console.error('Usage:');
+  console.error('  panorama update [--config PATH]');
+  console.error('  panorama doctor');
+  console.error('  panorama create <session-name> [--task <name>]');
+  console.error('  panorama attach [<session-name>]');
   process.exit(2);
 }
 
-const { subcommand, opts } = parseArgs(process.argv.slice(2));
+const [subcommand, ...rest] = process.argv.slice(2);
 switch (subcommand) {
   case 'update':
-    cmdUpdate(opts);
+    cmdUpdate(rest);
     break;
   case 'doctor':
     cmdDoctor();
     break;
+  case 'create': {
+    const exit = await runCreate({ args: rest });
+    process.exit(exit);
+  }
+  case 'attach': {
+    const exit = await runAttach({ args: rest });
+    process.exit(exit);
+  }
   default:
     usage();
 }
