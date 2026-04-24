@@ -74,6 +74,11 @@ tell application "System Events"
     key code 123 using {command down, option down}
     delay 0.25
     keystroke "d" using {command down, shift down}
+    delay 0.3
+
+    -- Phase 3: 全 split を均等化 (端数丸めによる誤差を解消)
+    --   super+ctrl+= = equalize_splits (ghostty default)
+    keystroke "=" using {command down, control down}
 end tell
 APPLESCRIPT
 
