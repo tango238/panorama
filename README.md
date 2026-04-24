@@ -123,6 +123,7 @@ Obsidian で `Dashboard.md` を開くと、Kanban ボードとして表示され
 panorama update            # ダッシュボードを手動で更新
 panorama update --config PATH  # 設定ファイルを指定して更新
 panorama doctor            # インストール状態のチェック
+panorama init              # ghostty ウィンドウを 2×4 grid に分割 (macOS/ghostty 専用)
 panorama create <name>     # 新しい tmux セッションを作成して attach
 panorama create <name> --task <task-name>  # ウィンドウ名を指定
 panorama attach            # tmux セッション一覧から対話選択して attach

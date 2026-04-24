@@ -2,7 +2,7 @@
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve, join } from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { homedir } from 'node:os';
 import { loadConfig } from '../src/lib/config.js';
 import { runUpdate } from '../src/update.js';
@@ -29,6 +29,16 @@ function cmdUpdate(args) {
   }
   const cfg = loadConfig(configPath);
   runUpdate(cfg);
+}
+
+function cmdInit() {
+  const scriptPath = join(REPO_DIR, 'skill/scripts/init_ghostty.sh');
+  if (!existsSync(scriptPath)) {
+    console.error(`panorama init: script not found at ${scriptPath}`);
+    process.exit(1);
+  }
+  const result = spawnSync('bash', [scriptPath], { stdio: 'inherit' });
+  process.exit(result.status ?? 1);
 }
 
 function checkBin(name) {
@@ -90,6 +100,7 @@ function usage() {
   console.error('Usage:');
   console.error('  panorama update [--config PATH]');
   console.error('  panorama doctor');
+  console.error('  panorama init');
   console.error('  panorama create <session-name> [--task <name>]');
   console.error('  panorama attach [<session-name>]');
   process.exit(2);
@@ -102,6 +113,9 @@ switch (subcommand) {
     break;
   case 'doctor':
     cmdDoctor();
+    break;
+  case 'init':
+    cmdInit();
     break;
   case 'create': {
     const exit = await runCreate({ args: rest });
