@@ -101,7 +101,7 @@ function usage() {
   console.error('  panorama update [--config PATH]');
   console.error('  panorama doctor');
   console.error('  panorama init');
-  console.error('  panorama create <session-name> [--task <name>]');
+  console.error('  panorama create <session-name> [--task <name>] [--no-register]');
   console.error('  panorama attach [<session-name>]');
   process.exit(2);
 }

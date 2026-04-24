@@ -124,8 +124,9 @@ panorama update            # ダッシュボードを手動で更新
 panorama update --config PATH  # 設定ファイルを指定して更新
 panorama doctor            # インストール状態のチェック
 panorama init              # ghostty ウィンドウを 2×4 grid に分割 (macOS/ghostty 専用)
-panorama create <name>     # 新しい tmux セッションを作成して attach
-panorama create <name> --task <task-name>  # ウィンドウ名を指定
+panorama create <name>     # 新しい tmux セッションを作成し、Dashboard.md の 🟢 対応中 にカード追加して attach
+panorama create <name> --task <task-name>  # ウィンドウ名 / カードのタスク名を指定
+panorama create <name> --no-register       # tmux セッション作成のみ (カードを追加しない)
 panorama attach            # tmux セッション一覧から対話選択して attach
 panorama attach <name>     # 指定セッションに直接 attach
 ```
