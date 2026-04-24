@@ -50,3 +50,15 @@ export function listSessions() {
     return [];
   }
 }
+
+export function createSession(name, cwd) {
+  execFileSync('tmux', ['new-session', '-d', '-s', name, '-c', cwd], {
+    stdio: ['ignore', 'ignore', 'pipe'],
+  });
+}
+
+export function renameWindow(session, windowName) {
+  execFileSync('tmux', ['rename-window', '-t', `${session}:`, windowName], {
+    stdio: ['ignore', 'ignore', 'pipe'],
+  });
+}
