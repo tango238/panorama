@@ -34,7 +34,7 @@ export function pick({
   if (!Array.isArray(items) || items.length === 0) {
     return Promise.reject(new Error('picker: no items to select'));
   }
-  if (!stdin.isTTY) {
+  if (!stdin.isTTY || !stdout.isTTY) {
     return Promise.reject(new Error('picker: not a tty'));
   }
 

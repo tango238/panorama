@@ -21,6 +21,20 @@ test('runCreate: returns 2 when no session name', async () => {
   assert.equal(exit, 2);
 });
 
+test('runCreate: returns 2 when session name is empty string', async () => {
+  const tmux = makeFakeTmux();
+  const messages = [];
+  const exit = await runCreate({
+    args: [''],
+    tmux,
+    cwd: '/tmp',
+    stderr: { write: (s) => messages.push(s) },
+  });
+  assert.equal(exit, 2);
+  assert.match(messages.join(''), /missing session name/);
+  assert.deepEqual(tmux.calls, []);
+});
+
 test('runCreate: returns 1 when tmux not available', async () => {
   const tmux = makeFakeTmux({ isTmuxAvailable: () => false });
   const messages = [];

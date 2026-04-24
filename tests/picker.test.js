@@ -66,6 +66,15 @@ test('pick: throws on non-TTY stdin', async () => {
   );
 });
 
+test('pick: throws on non-TTY stdout', async () => {
+  const fakeStdin = { isTTY: true };
+  const fakeStdout = { isTTY: false, write: () => {} };
+  await assert.rejects(
+    () => pick({ items: ['a', 'b'], header: 'Select', stdin: fakeStdin, stdout: fakeStdout }),
+    /not a tty/i
+  );
+});
+
 test('pick: throws on empty items', async () => {
   const fakeStdin = { isTTY: true };
   await assert.rejects(

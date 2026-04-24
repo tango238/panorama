@@ -3,6 +3,9 @@ import * as defaultTmux from '../lib/tmux-session.js';
 function parseCreateArgs(args) {
   if (args.length === 0) return { error: 'missing session name' };
   const [name, ...rest] = args;
+  if (typeof name !== 'string' || name.length === 0) {
+    return { error: 'missing session name' };
+  }
   let task = null;
   for (let i = 0; i < rest.length; i++) {
     if (rest[i] === '--task') {
