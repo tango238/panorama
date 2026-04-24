@@ -73,6 +73,7 @@ bash "$HOME/.claude/skills/panorama/scripts/init_ghostty.sh"
      2. `cmd+opt+left` で B 列へ、`cmd+shift+d`
      3. `cmd+opt+left` で C 列へ、`cmd+shift+d`
      4. `cmd+opt+left` で A 列へ、`cmd+shift+d`
+   - **Phase 3**: `cmd+ctrl+=` で `equalize_splits` を呼び、端数丸めの誤差を解消して全 pane を均等化
 
 3. 注意:
    - ghostty が起動済みであること（起動していなければスクリプトはエラーで終了）
